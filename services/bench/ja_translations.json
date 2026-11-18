@@ -1,0 +1,214 @@
+{
+ "reference": {
+  "tournament": {
+   "nav.home": "ホーム",
+   "kvk.draw": "KvK組み合わせ抽選",
+   "kvk.drawSchedule": "抽選日程",
+   "kvk.seed": "シード",
+   "kvk.round": "第{n}ラウンド",
+   "kvk.kingdoms": "王国",
+   "common.refresh": "更新"
+  },
+  "results": {
+   "table.win": "勝",
+   "table.draw": "分",
+   "table.loss": "敗",
+   "table.points": "勝点",
+   "stats.saves": "セーブ",
+   "stats.title": "選手成績",
+   "match.title": "試合"
+  },
+  "canvas": {
+   "tool.draw": "描画",
+   "tool.fill": "塗り",
+   "tool.stroke": "線",
+   "layer.order": "重ね順",
+   "file.export": "書き出し",
+   "edit.undo": "取り消し"
+  },
+  "shop": {
+   "nav.order": "注文",
+   "address.state": "州",
+   "item.free": "無料",
+   "promo.save": "{percent}%オフ",
+   "cart.title": "カート",
+   "pay.charge": "請求額"
+  },
+  "parking": {
+   "spot.free": "空き",
+   "spot.taken": "使用中",
+   "room.book": "予約",
+   "room.capacity": "定員",
+   "spot.lot": "駐車場",
+   "filter.all": "すべて"
+  },
+  "device": {
+   "battery.charge": "残量",
+   "battery.current": "電流",
+   "device.state": "状態",
+   "battery.cells": "セル数",
+   "device.name": "デバイス名",
+   "battery.health": "健全性"
+  },
+  "editor": {
+   "find.matchCase": "大文字と小文字を区別",
+   "view.wrap": "折り返し",
+   "find.replace": "置換",
+   "find.wholeWord": "単語単位",
+   "edit.case": "大文字/小文字",
+   "find.next": "次へ"
+  },
+  "voice": {
+   "rec.record": "録音",
+   "rec.track": "トラック",
+   "rec.volume": "音量",
+   "rec.pitch": "ピッチ",
+   "rec.clear": "クリア",
+   "rec.share": "共有"
+  },
+  "shipping": {
+   "ship.track": "追跡",
+   "ship.volume": "容積",
+   "ship.weight": "重量",
+   "ship.label": "ラベル",
+   "ship.due": "配達期限",
+   "ship.carrier": "配送業者"
+  },
+  "bank": {
+   "acct.balance": "残高",
+   "acct.statement": "取引明細書",
+   "acct.interest": "金利",
+   "acct.check": "小切手入金",
+   "acct.transfer": "振込",
+   "acct.savings": "貯蓄預金"
+  },
+  "social": {
+   "profile.interests": "興味・関心",
+   "profile.handle": "ユーザー名",
+   "profile.bio": "自己紹介",
+   "profile.following": "フォロー中",
+   "profile.block": "ブロック",
+   "profile.tip": "ヒント"
+  },
+  "restaurant": {
+   "bill.tip": "チップ",
+   "bill.check": "お会計",
+   "bill.party": "{n}名様",
+   "bill.split": "割り勘",
+   "bill.table": "テーブル",
+   "bill.total": "合計"
+  },
+  "meetings": {
+   "hr.leave": "休暇",
+   "call.leave": "退出",
+   "meet.minutes": "議事録",
+   "meet.chair": "議長",
+   "meet.agenda": "議題",
+   "hr.review": "評価"
+  },
+  "weather": {
+   "sky.clear": "快晴",
+   "sky.fair": "晴れ",
+   "notif.clear": "クリア",
+   "wind.light": "弱い",
+   "sky.title": "天気",
+   "notif.title": "通知"
+  },
+  "fantasy": {
+   "league.draft": "ドラフト",
+   "mail.draft": "下書き",
+   "league.pick": "指名",
+   "league.trade": "トレード",
+   "mail.inbox": "受信トレイ",
+   "league.bench": "ベンチ"
+  }
+ },
+ "wrong": {
+  "tournament": {
+   "kvk.draw": "KvK引き分け",
+   "kvk.drawSchedule": "引き分けスケジュール",
+   "kvk.seed": "種"
+  },
+  "results": {
+   "table.draw": "抽選",
+   "stats.saves": "保存数",
+   "match.title": "一致"
+  },
+  "canvas": {
+   "tool.draw": "引き分け",
+   "tool.fill": "記入",
+   "tool.stroke": "脳卒中",
+   "layer.order": "注文"
+  },
+  "shop": {
+   "nav.order": "順序",
+   "address.state": "状態",
+   "item.free": "空き",
+   "promo.save": "{percent}%を保存",
+   "pay.charge": "充電"
+  },
+  "parking": {
+   "spot.free": "無料",
+   "room.book": "本",
+   "spot.lot": "ロット"
+  },
+  "device": {
+   "battery.charge": "請求",
+   "battery.current": "現在",
+   "device.state": "州",
+   "battery.cells": "細胞数"
+  },
+  "editor": {
+   "find.matchCase": "試合ケース",
+   "view.wrap": "包む",
+   "edit.case": "事例"
+  },
+  "voice": {
+   "rec.record": "記録",
+   "rec.track": "追跡",
+   "rec.volume": "巻",
+   "rec.pitch": "売り込み"
+  },
+  "shipping": {
+   "ship.track": "トラック",
+   "ship.volume": "音量",
+   "ship.due": "未払い"
+  },
+  "bank": {
+   "acct.balance": "バランス",
+   "acct.statement": "声明",
+   "acct.interest": "興味",
+   "acct.check": "確認"
+  },
+  "social": {
+   "profile.interests": "利息",
+   "profile.handle": "取っ手",
+   "profile.tip": "チップ",
+   "profile.block": "区画"
+  },
+  "restaurant": {
+   "bill.tip": "ヒント",
+   "bill.check": "確認",
+   "bill.party": "{n}人のパーティー",
+   "bill.split": "分裂"
+  },
+  "meetings": {
+   "hr.leave": "退出",
+   "call.leave": "休暇",
+   "meet.minutes": "分",
+   "meet.chair": "椅子"
+  },
+  "weather": {
+   "sky.clear": "クリア",
+   "sky.fair": "公平",
+   "notif.clear": "快晴",
+   "wind.light": "ライト"
+  },
+  "fantasy": {
+   "league.draft": "下書き",
+   "mail.draft": "ドラフト",
+   "league.bench": "作業台",
+   "league.pick": "選ぶ"
+  }
+ }
+}
