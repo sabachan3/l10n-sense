@@ -1,5 +1,8 @@
 # Example workflow: copy to .github/workflows/l10n-sense.yml in your project.
 #
+# Until l10n-sense is on PyPI, replace `uvx l10n-sense` below with
+#   uvx --from git+https://github.com/sabachan3/l10n-sense l10n-sense
+#
 # The rules-only job needs no account and costs nothing. It catches broken placeholders, empty
 # or missing translations, key names used as translations, and untranslated text.
 name: l10n-sense

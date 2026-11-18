@@ -33,8 +33,11 @@ pipx install l10n-sense          # or install the command
 pip install "l10n-sense[yaml]"   # YAML locale files need PyYAML
 ```
 
-Python 3.10 or newer, no other dependencies. Not on PyPI yet: until then,
-`uvx --from git+<this repository> l10n-sense`.
+Python 3.10 or newer, no other dependencies. Not on PyPI yet; until then:
+
+```bash
+uvx --from git+https://github.com/sabachan3/l10n-sense l10n-sense --help
+```
 
 ## Use
 
