@@ -21,3 +21,43 @@ What this does and does not show:
   as `battery.charge` already give the sense away. Passing here is necessary, not sufficient.
 - Next: cases mined from real fixes of machine-translated locale files, where the wrong strings
   are the ones that actually shipped.
+
+## 2026-11-19: real fix, Chinese (`data/bench/real.omniroute.zh.jsonl`)
+
+OmniRoute (MIT) fixed 295 wrong-sense machine translations in its zh-CN locale file
+(pull request 19308). Cases hold the file as it was before the fix: 196 windows of up to 20
+neighbouring keys, 3,846 strings, 295 labelled wrong. Usage in code was found for 86% of keys.
+
+| reviewer sees | precision | recall | flagged but not in the fix |
+|---|---:|---:|---:|
+| source + translation (`pair`) | 0.565 | 0.736 | 167 / 3,551 |
+| source + translation + code (`code`) | 0.506 | 0.756 | 218 / 3,551 |
+
+Against these labels the gate (0.9 / 0.7) fails on precision. The labels are the weak part:
+
+- The fix only swept strings of 30 characters or fewer and left "legitimate alternative
+  wordings" alone, so `ok` means "not touched", not "verified correct".
+- I read 14 random extra flags per mode. Without code: 11 real errors the fix missed (audit as
+  审核, rate limits as 费率, Duplicate as 重复, a translated identifier, omitted content), 2
+  debatable, 1 caused by a placeholder English source. With code: 9 real, 3 debatable, 2 caused
+  by placeholder English. If those shares held, precision would be about 0.9 without code and
+  about 0.8 with code, but 14 items cannot carry that claim.
+- About a quarter of the fix is glossary alignment (供应商 to 提供者) and leftover English, which
+  the reviewer is told not to flag as wrong sense. Those count as misses here.
+
+Code context did not help on this set: the wrong senses are blatant in a known domain, and
+code mode adds flags where the English source itself is a placeholder generated from the key
+name (`Template Load Hint`) while the code passes arguments the string never uses.
+
+What is needed before any precision claim: a sample of flags judged by a native speaker.
+
+## 2026-11-19: field audit, Japanese (unreviewed file)
+
+The same repository's `ja.json` has never been fixed. On 100 windows (2,000 strings), code
+mode flagged 108 strings (5.4%). All 108 are listed in
+[audit-omniroute-ja-sample.md](audit-omniroute-ja-sample.md). Examples: terminal as 端子,
+DEF (default) as 守備, Health as 健康, the API path chat/completions as チャット/補完,
+Never as 決してしない, and values that are the key name itself (`Flow Spawn`).
+
+My reading of 30 random flags: about 20 real errors, 6 debatable, 4 style remarks the reviewer
+was told not to make (されました versus 済み, 空の versus 空). Not yet judged by a native speaker.
