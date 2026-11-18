@@ -73,3 +73,49 @@ def at_threshold(scores: list[float], labels: list[bool], threshold: float) -> d
     fn = sum(l and not f for f, l in zip(flagged, labels))
     return {"threshold": threshold, "flagged": tp + fp, "precision": tp / (tp + fp) if tp + fp else None,
             "recall": tp / (tp + fn) if tp + fn else None, "false_alarms": fp}
+
+
+def band(score: float, warn: int = 41, fail: int = 61) -> str:
+    return "wrong" if score >= fail else "unnatural" if score >= warn else "fine"
+
+
+def combine(first: dict[str, float], second: dict[str, float], warn: int = 41, fail: int = 61) -> dict[str, str]:
+    """Verdict per string from two independent scorers.
+
+    confirmed  both rate it wrong            -> safe to fail a CI run on
+    disputed   exactly one rates it wrong    -> needs a person
+    unnatural  neither says wrong, at least one says unnatural -> warning
+    fine       both rate it fine
+    Strings scored by only one scorer are left out.
+    """
+    verdicts = {}
+    for key in first.keys() & second.keys():
+        bands = (band(first[key], warn, fail), band(second[key], warn, fail))
+        if bands == ("wrong", "wrong"):
+            verdicts[key] = "confirmed"
+        elif "wrong" in bands:
+            verdicts[key] = "disputed"
+        elif "unnatural" in bands:
+            verdicts[key] = "unnatural"
+        else:
+            verdicts[key] = "fine"
+    return verdicts
+
+
+def agreement(first: dict[str, float], second: dict[str, float], fail: int = 61) -> dict:
+    """How often two scorers agree on wrong / not wrong, with Cohen's kappa (chance-corrected)."""
+    keys = sorted(first.keys() & second.keys())
+    a = [first[key] >= fail for key in keys]
+    b = [second[key] >= fail for key in keys]
+    total = len(keys)
+    if not total:
+        return {"strings": 0, "both_wrong": 0, "only_first": 0, "only_second": 0, "neither": 0, "observed": None, "kappa": None}
+    both = sum(x and y for x, y in zip(a, b))
+    only_a = sum(x and not y for x, y in zip(a, b))
+    only_b = sum(y and not x for x, y in zip(a, b))
+    neither = total - both - only_a - only_b
+    observed = (both + neither) / total
+    expected = (sum(a) / total) * (sum(b) / total) + (1 - sum(a) / total) * (1 - sum(b) / total)
+    kappa = (observed - expected) / (1 - expected) if expected < 1 else None
+    return {"strings": total, "both_wrong": both, "only_first": only_a, "only_second": only_b, "neither": neither,
+            "observed": observed, "kappa": kappa}

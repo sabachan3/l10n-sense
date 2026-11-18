@@ -18,14 +18,15 @@ sys.path.insert(0, str(HERE))
 
 import score_lib  # noqa: E402
 
-LLM = HERE.parent / "llm" / "llm.py"
+SERVICES = {"claude": HERE.parent / "llm" / "llm.py", "codex": HERE.parent / "llm_codex" / "codex.py"}
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--cases", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
-    parser.add_argument("--model", required=True)
+    parser.add_argument("--service", choices=sorted(SERVICES), default="claude", help="which local LLM service scores")
+    parser.add_argument("--model", help="model name for that service (default: the service's own)")
     parser.add_argument("--workers", type=int, default=6)
     args = parser.parse_args()
     cases = [json.loads(line) for line in args.cases.read_text(encoding="utf-8").splitlines() if line.strip()]
@@ -37,11 +38,11 @@ def main() -> None:
         last = None
         for _ in range(2):  # one retry: a reply that skips keys is usually complete the second time
             try:
-                request = {"prompt": score_lib.build_prompt(case), "model": args.model}
-                result = subprocess.run([sys.executable, str(LLM)], input=json.dumps(request), capture_output=True, text=True)
+                request = {"prompt": score_lib.build_prompt(case), **({"model": args.model} if args.model else {})}
+                result = subprocess.run([sys.executable, str(SERVICES[args.service])], input=json.dumps(request), capture_output=True, text=True)
                 if result.returncode != 0:
                     raise RuntimeError(result.stderr.strip()[:300])
-                return {"id": case["id"], "model": args.model,
+                return {"id": case["id"], "model": args.model or args.service,
                         "scores": score_lib.parse_scores(json.loads(result.stdout)["text"], set(case["source"]))}
             except Exception as exc:
                 last = exc

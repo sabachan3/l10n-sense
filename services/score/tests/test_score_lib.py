@@ -40,3 +40,24 @@ def test_threshold_counts():
     assert (result["flagged"], result["false_alarms"]) == (3, 1)
     assert result["precision"] == pytest.approx(2 / 3) and result["recall"] == 1.0
     assert score_lib.at_threshold([10], [True], 61)["precision"] is None
+
+
+def test_band_edges():
+    assert [score_lib.band(s) for s in (0, 40, 41, 60, 61, 100)] == ["fine", "fine", "unnatural", "unnatural", "wrong", "wrong"]
+
+
+def test_combine_needs_both_scorers_to_confirm():
+    first = {"a": 90, "b": 90, "c": 50, "d": 10, "only_first": 99}
+    second = {"a": 70, "b": 30, "c": 10, "d": 20}
+    assert score_lib.combine(first, second) == {"a": "confirmed", "b": "disputed", "c": "unnatural", "d": "fine"}
+
+
+def test_agreement_counts_and_kappa():
+    first = {"a": 90, "b": 90, "c": 10, "d": 10}
+    assert score_lib.agreement(first, dict(first))["kappa"] == 1.0
+    opposite = {"a": 10, "b": 10, "c": 90, "d": 90}
+    result = score_lib.agreement(first, opposite)
+    assert (result["both_wrong"], result["only_first"], result["only_second"], result["neither"]) == (0, 2, 2, 0)
+    assert result["observed"] == 0.0 and result["kappa"] == -1.0
+    assert score_lib.agreement({}, {})["kappa"] is None
+    assert score_lib.agreement({"a": 0}, {"a": 0})["kappa"] is None  # no wrong strings at all: kappa undefined
