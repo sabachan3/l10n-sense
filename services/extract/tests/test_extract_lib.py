@@ -44,3 +44,32 @@ def test_long_lines_are_cut():
 def test_windows_keep_file_order_and_never_mix_namespaces():
     keys = ["a.1", "a.2", "a.3", "b.1", "b.2", "a.4"]
     assert extract_lib.windows(keys, 2) == [["a.1", "a.2"], ["a.3"], ["b.1", "b.2"], ["a.4"]]
+
+
+def test_sentence_keys_android_resources_and_gettext_context_are_found():
+    files = {"app/Main.kt": 'title = getString(R.string.kvk_draw)\ncount = resources.getQuantityString(R.plurals.files, n)\n',
+             "app/View.swift": 'Text("KvK draw")\n', "src/a.py": 'label = _("Open")\n'}
+    index = extract_lib.build_index(files)
+    assert extract_lib.usages("kvk_draw", files, index)[0]["path"] == "app/Main.kt"
+    assert extract_lib.usages("files#one", files, index)[0]["line"] == 2
+    assert extract_lib.usages("KvK draw", files, index)[0]["path"] == "app/View.swift"
+    assert extract_lib.usages("verb\u0004Open", files, index)[0]["path"] == "src/a.py"
+
+
+def test_references_from_the_locale_file_are_resolved_by_path_suffix():
+    files = {"proj/src/kvk/draw.py": "a\nb\ntitle = _('KvK draw')\nd\n"}
+    found = extract_lib.at_references([("src/kvk/draw.py", 3), ("missing.py", 1)], files, around=0)
+    assert found == [{"path": "proj/src/kvk/draw.py", "line": 3, "snippet": "title = _('KvK draw')"}]
+    assert extract_lib.at_references([("src/kvk/draw.py", 999)], files, around=0)[0]["line"] == 5
+
+
+def test_render_shows_developer_notes():
+    text = extract_lib.render({"a": [], "b": []}, {"a": "Bracket draw title"})
+    assert "### a\ndeveloper note: Bracket draw title" in text and "### b\n(no usage found in the source)" in text
+
+
+def test_flat_keys_share_groups_and_sentence_keys_ignore_their_dots():
+    assert extract_lib.windows(["kvk_draw", "greeting", "charge"], 20) == [["kvk_draw", "greeting", "charge"]]
+    sentences = ["Saved. Open it?", "Done.", "a.b"]
+    assert extract_lib.windows(sentences, 20, by_namespace=False) == [sentences]
+    assert extract_lib.windows(["a", "b", "c"], 2) == [["a", "b"], ["c"]]

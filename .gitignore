@@ -3,3 +3,5 @@ __pycache__/
 runs/
 .env
 node_modules/
+dist/
+*.egg-info/

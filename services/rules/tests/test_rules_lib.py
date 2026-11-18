@@ -52,3 +52,16 @@ def test_empty_and_missing():
     assert rules("a", "", "") == []
     found = rules_lib.check_locale({"a": "Save", "b": "Open file"}, {"a": "保存"}, "ja")
     assert found == [{"key": "b", "rule": "missing", "message": "the key has no translation"}]
+
+
+def test_ios_ruby_and_python_placeholders():
+    assert rules_lib.placeholders("%@ has %lld items, %1$@") == {"%@", "%lld", "%1$@"}
+    assert rules_lib.placeholders("Hello %{name}") == {"%{name}"}
+    assert rules_lib.placeholders("Hello %(name)s") == {"%(name)s"}
+    assert rules("a", "Hello %{name}", "こんにちは") == ["placeholder"]
+    assert rules("a", "100% sure", "100% 確実") == []
+
+
+def test_a_key_that_is_the_source_text_is_never_a_key_name_finding():
+    assert rules("Open", "Open", "open") == []
+    assert rules("Start the flow", "Start the flow", "Start the flow") == ["untranslated"]

@@ -55,3 +55,12 @@ def test_cache_key_changes_with_every_input():
     assert base == check_lib.cache_key("claude", None, 2, "p")
     assert len({base, check_lib.cache_key("codex", None, 2, "p"), check_lib.cache_key("claude", "m", 2, "p"),
                 check_lib.cache_key("claude", None, 3, "p"), check_lib.cache_key("claude", None, 2, "q")}) == 5
+
+
+def test_text_output_cannot_carry_terminal_control_sequences():
+    evil = "\x1b[2J\x1b]0;owned\x07ok\rFAIL\nnext"
+    result = check_lib.build_report({evil: evil}, {evil: evil}, [{"key": evil, "rule": "r", "message": evil}],
+                                    {evil: {"score": 90, "note": evil, "fix": evil}}, {}, 41, 61, {})
+    text = check_lib.format_text(result)
+    assert "\x1b" not in text and "\x07" not in text and "\r" not in text
+    assert len(text.split("\n")) == 7  # header, source, target, rule, note, fix, summary: no injected lines

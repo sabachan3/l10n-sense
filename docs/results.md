@@ -134,3 +134,13 @@ Failures include NPM as 故宮, Anthropic as 人間的, About as 約について
 
 Scoring prompt version 2 (adds a `fix` field) on the known-truth benchmark, default Claude
 model: precision 1.0, recall 0.964, no false alarms (`scripts/eval.sh`).
+
+## 2026-11-19: package and formats
+
+Renamed to l10n-sense: `l10n-lint` is already another project on PyPI. The wheel
+(`uv build`) installs a `l10n-sense` command; run from a clean directory it reproduced the 346-string
+result above from cache, and scored a three-string Android project live: Charge (battery) as 請求
+92, a dropped `%1$s` 85 plus the placeholder rule, KvK draw as KvK引き分け 85.
+
+Formats added: YAML, gettext, Android, iOS `.strings`, Xcode `.xcstrings`, Chrome messages, ARB.
+Each has parser tests; only JSON has benchmark numbers.

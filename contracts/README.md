@@ -1,7 +1,7 @@
 # Contracts (v1)
 
 Services exchange JSON Lines files and never import each other's code. The top-level command
-`l10n_lint.py` is the only place that composes them.
+`l10n_sense/cli.py` is the only place that composes them.
 
 ## Benchmark case (`data/bench/*.jsonl`)
 
@@ -28,7 +28,7 @@ A key that is not listed is judged fine.
 Called as a subprocess. It runs the local Claude Code CLI with no tools, no MCP servers and no
 settings, from an empty directory. No hosted API is called from this repo.
 
-## Report (`l10n_lint.py check --out report.json`)
+## Report (`l10n-sense check --out report.json`)
 
 `{"version": 1, "meta", "thresholds": {"warn", "fail"}, "summary": {"strings", "fail", "review", "warn", "ok"}, "strings": [...]}`
 

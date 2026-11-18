@@ -1,0 +1,52 @@
+# Example workflow: copy to .github/workflows/l10n-sense.yml in your project.
+#
+# The rules-only job needs no account and costs nothing. It catches broken placeholders, empty
+# or missing translations, key names used as translations, and untranslated text.
+name: l10n-sense
+on:
+  pull_request:
+    paths: ["locales/**", "src/**"]
+
+jobs:
+  rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Check every locale against English
+        run: |
+          status=0
+          for file in locales/*.json; do
+            [ "$file" = "locales/en.json" ] && continue
+            lang=$(basename "$file" .json)
+            echo "::group::$lang"
+            uvx l10n-sense check --source locales/en.json --target "$file" --lang "$lang" --no-model || status=1
+            echo "::endgroup::"
+          done
+          exit $status
+
+  # Model scoring finds wrong-sense translations. It needs a model CLI that is installed and
+  # logged in on the runner (Claude Code or Codex); set that up the way the CLI's own docs
+  # describe for headless use, then remove `if: false`. Calls count against that account.
+  # The cache makes repeat runs cheap: only strings whose text or code changed are scored again.
+  model:
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/cache@v4
+        with:
+          path: .l10n-sense-cache
+          key: l10n-sense-${{ github.base_ref }}-${{ github.sha }}
+          restore-keys: l10n-sense-${{ github.base_ref }}-
+      - name: Score Japanese with code context
+        run: |
+          mkdir -p .l10n-sense-cache
+          uvx l10n-sense check --source locales/en.json --target locales/ja.json --lang ja --src src \
+            --cache .l10n-sense-cache/ja.json --out l10n-sense-report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: l10n-sense-report
+          path: l10n-sense-report.json

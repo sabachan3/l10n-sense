@@ -50,6 +50,12 @@ def exit_code(report: dict, fail_on: str = "fail") -> int:
     return 1 if any(report["summary"][level] for level in levels) else 0
 
 
+def clean(text) -> str:
+    """Strings come from the repository under review and from a model: never let them drive the
+    terminal. Control characters (escape sequences, carriage returns) become spaces, newlines a mark."""
+    return "".join(char if char.isprintable() else ("\u23ce" if char == "\n" else " ") for char in str(text))
+
+
 def format_text(report: dict, show: tuple[str, ...] = ("fail", "review", "warn")) -> str:
     def weight(entry):
         scores = [value for value in (entry["score"], entry["second_score"]) if value is not None]
@@ -58,16 +64,16 @@ def format_text(report: dict, show: tuple[str, ...] = ("fail", "review", "warn")
     lines = []
     for entry in sorted((entry for entry in report["strings"] if entry["verdict"] in show), key=weight):
         scores = "/".join(str(value) for value in (entry["score"], entry["second_score"]) if value is not None)
-        lines.append(f"{entry['verdict'].upper():6} {entry['key']}" + (f"  [{scores}]" if scores else ""))
-        lines.append(f"       source: {entry['source']}")
-        lines.append(f"       target: {entry['target']}")
+        lines.append(f"{entry['verdict'].upper():6} {clean(entry['key'])}" + (f"  [{scores}]" if scores else ""))
+        lines.append(f"       source: {clean(entry['source'])}")
+        lines.append(f"       target: {clean(entry['target'])}")
         for rule in entry["rules"]:
-            lines.append(f"       rule {rule['rule']}: {rule['message']}")
+            lines.append(f"       rule {clean(rule['rule'])}: {clean(rule['message'])}")
         for note in (entry["note"], entry["second_note"]):
             if note:
-                lines.append(f"       note: {note}")
+                lines.append(f"       note: {clean(note)}")
         if entry["fix"]:
-            lines.append(f"       fix: {entry['fix']}")
+            lines.append(f"       fix: {clean(entry['fix'])}")
     summary = report["summary"]
     lines.append(f"{summary['strings']} strings: {summary['fail']} fail, {summary['review']} review, "
                  f"{summary['warn']} warn, {summary['ok']} ok")

@@ -72,3 +72,12 @@ def test_notes_are_bounded_single_line_text():
     assert score_lib.clean_note(None) == "None"
     reply = '{"scores": [{"key": "a", "score": 5, "note": "' + "x" * 300 + '"}]}'
     assert len(score_lib.parse_scores(reply, {"a"})["a"]["note"]) == score_lib.NOTE_LIMIT
+
+
+def test_cached_entries_are_checked_before_use():
+    good = {"a": {"score": 70, "note": "n\x1b[2J", "fix": "f"}, "b": {"score": 0, "note": "", "fix": ""}}
+    assert score_lib.validate_cached(good, {"a", "b"})["a"] == {"score": 70, "note": "n [2J", "fix": "f"}
+    assert score_lib.validate_cached(good, {"a"}) is None                       # other keys than expected
+    assert score_lib.validate_cached({"a": {"score": 700}}, {"a"}) is None      # out of range
+    assert score_lib.validate_cached({"a": {"score": "0"}}, {"a"}) is None
+    assert score_lib.validate_cached({"a": 0}, {"a"}) is None and score_lib.validate_cached("x", {"a"}) is None

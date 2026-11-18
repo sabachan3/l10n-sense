@@ -134,3 +134,18 @@ def agreement(first: dict[str, float], second: dict[str, float], fail: int = 61)
     kappa = (observed - expected) / (1 - expected) if expected < 1 else None
     return {"strings": total, "both_wrong": both, "only_first": only_a, "only_second": only_b, "neither": neither,
             "observed": observed, "kappa": kappa}
+
+
+def validate_cached(entry, keys: set[str]) -> dict | None:
+    """A cache file is untrusted input (it can be edited or committed by someone else). An entry
+    is used only if it covers exactly the expected keys with in-range integer scores; its text is
+    cleaned again. Anything else is treated as not cached."""
+    if not isinstance(entry, dict) or set(entry) != keys:
+        return None
+    out = {}
+    for key, value in entry.items():
+        score = value.get("score") if isinstance(value, dict) else None
+        if isinstance(score, bool) or not isinstance(score, int) or not 0 <= score <= 100:
+            return None
+        out[key] = {"score": score, "note": clean_note(value.get("note", "")), "fix": clean_note(value.get("fix") or "", FIX_LIMIT)}
+    return out

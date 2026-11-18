@@ -11,7 +11,7 @@ import re
 # ICU arguments ({count}, {count, plural, ...}), double braces ({{name}}), printf (%s, %1$s, %d)
 ICU_ARGUMENT = re.compile(r"\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?:,[^{}]*(?:\{[^{}]*\}[^{}]*)*)?\}")
 DOUBLE_BRACE = re.compile(r"\{\{\s*([A-Za-z_][A-Za-z0-9_.]*)\s*\}\}")
-PRINTF = re.compile(r"%(?:\d+\$)?[sdif@]")
+PRINTF = re.compile(r"%(?:\d+\$)?(?:l{0,2}[dufx]|[s@if])|%\{[A-Za-z_][A-Za-z0-9_]*\}|%\([A-Za-z_][A-Za-z0-9_]*\)[sd]")
 # an ordinary word: lower case, or Capitalised. Not an acronym (URL), not mixed case (WebDAV, sessionKey).
 WORD = re.compile(r"(?<![A-Za-z0-9_=\-.])[A-Z]?[a-z]{2,}(?![A-Za-z0-9_=])")
 
@@ -26,7 +26,9 @@ SCRIPTS = {  # languages whose text must contain characters of their own script
 def placeholders(text: str) -> set[str]:
     doubles = {f"{{{{{name}}}}}" for name in DOUBLE_BRACE.findall(text)}
     rest = DOUBLE_BRACE.sub(" ", text)
-    return doubles | {f"{{{name}}}" for name in ICU_ARGUMENT.findall(rest)} | set(PRINTF.findall(rest))
+    printf = set(PRINTF.findall(rest))          # includes Ruby %{name} and Python %(name)s
+    rest = PRINTF.sub(" ", rest)
+    return doubles | {f"{{{name}}}" for name in ICU_ARGUMENT.findall(rest)} | printf
 
 
 def squash(text: str) -> str:
@@ -50,7 +52,9 @@ def check_string(key: str, source: str, target: str, language: str) -> list[dict
         parts = ([f"missing {', '.join(missing)}"] if missing else []) + ([f"unexpected {', '.join(extra)}"] if extra else [])
         add("placeholder", "placeholders differ from the source: " + "; ".join(parts))
 
-    leaf = key.rsplit(".", 1)[-1]
+    leaf = key.rsplit("\u0004", 1)[-1].rsplit(".", 1)[-1]
+    if key == source:  # gettext and Xcode catalogs: the key is the source text, so it says nothing
+        leaf = ""
     words = WORD.findall(PRINTF.sub(" ", ICU_ARGUMENT.sub(" ", source)))
     if len(squash(leaf)) >= 4 and target.isascii() and squash(target) == squash(leaf) and target != source:
         add("key_as_value", f"the translation is the key name ({target!r}), not a translation of {source!r}")
