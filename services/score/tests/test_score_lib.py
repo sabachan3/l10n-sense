@@ -61,3 +61,11 @@ def test_agreement_counts_and_kappa():
     assert result["observed"] == 0.0 and result["kappa"] == -1.0
     assert score_lib.agreement({}, {})["kappa"] is None
     assert score_lib.agreement({"a": 0}, {"a": 0})["kappa"] is None  # no wrong strings at all: kappa undefined
+
+
+def test_notes_are_bounded_single_line_text():
+    assert score_lib.clean_note("line one\nline two\x1b[31m\tend") == "line one line two [31m end"
+    assert len(score_lib.clean_note("あ" * 500)) == score_lib.NOTE_LIMIT
+    assert score_lib.clean_note(None) == "None"
+    reply = '{"scores": [{"key": "a", "score": 5, "note": "' + "x" * 300 + '"}]}'
+    assert len(score_lib.parse_scores(reply, {"a"})["a"]["note"]) == score_lib.NOTE_LIMIT

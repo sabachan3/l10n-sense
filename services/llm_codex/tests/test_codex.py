@@ -53,3 +53,10 @@ def test_failures_become_llm_errors():
 
     with pytest.raises(codex.LLMError):
         codex.complete("hello", run=timeout)
+
+
+def test_every_acting_tool_is_disabled():
+    command = codex.build_command("/d", "/d/o")
+    disabled = {command[i + 1] for i, part in enumerate(command) if part == "--disable"}
+    assert {"shell_tool", "unified_exec", "code_mode_host", "browser_use", "computer_use", "apps", "plugins"} <= disabled
+    assert "--enable" not in command

@@ -13,7 +13,12 @@ Prompts hold text from repositories under review, which may be hostile, so the a
     --ignore-rules          no project instruction files
     --ephemeral             no session kept
     -C <empty temp dir>     nothing of ours in its working directory
-The read-only sandbox can still read local files; the reply only ever goes to the caller.
+    --disable <tools>       no shell, no code execution, no browser, apps, plugins or image tools
+
+The sandbox alone is not enough: with its default tools the agent read a file outside its
+working directory when a prompt asked it to (checked 2026-11-19). With the tools in
+DISABLED_FEATURES off it has no way to read anything; `eval_isolation.py` re-checks this with a
+canary file and must pass after every CLI upgrade.
 """
 
 from __future__ import annotations
@@ -30,12 +35,19 @@ DEFAULT_MODEL = "gpt-6-astra"
 DEFAULT_EFFORT = "high"
 
 
+# Everything that lets the agent act or look outside the prompt. Text in, text out.
+DISABLED_FEATURES = ("shell_tool", "unified_exec", "code_mode_host", "apps", "plugins", "hooks", "browser_use",
+                     "browser_use_external", "in_app_browser", "computer_use", "image_generation", "view_image",
+                     "skill_search", "tool_suggest")
+
+
 class LLMError(RuntimeError):
     pass
 
 
 def build_command(workdir: str, output_file: str, model: str | None = None, effort: str | None = None) -> list[str]:
-    return ["codex", "exec", "--sandbox", "read-only", "--skip-git-repo-check", "--ephemeral", "--ignore-rules",
+    disabled = [part for feature in DISABLED_FEATURES for part in ("--disable", feature)]
+    return ["codex", "exec", *disabled, "--sandbox", "read-only", "--skip-git-repo-check", "--ephemeral", "--ignore-rules",
             "--ignore-user-config", "--color", "never", "-C", workdir, "-o", output_file,
             "-m", model or DEFAULT_MODEL, "-c", f'model_reasoning_effort="{effort or DEFAULT_EFFORT}"', "-"]
 

@@ -36,6 +36,15 @@ def build_prompt(case: dict) -> str:
                       json.dumps(rows, ensure_ascii=False, indent=1), "", "Source code that uses these keys:", case["code"]])
 
 
+NOTE_LIMIT = 120
+
+
+def clean_note(note) -> str:
+    """Model-written notes are untrusted: one line, no control characters, bounded length."""
+    text = "".join(char if char.isprintable() else " " for char in str(note))
+    return " ".join(text.split())[:NOTE_LIMIT]
+
+
 def parse_scores(text: str, valid_keys: set[str]) -> dict[str, dict]:
     match = re.search(r"\{.*\}", text, flags=re.S)
     if not match:
@@ -51,7 +60,7 @@ def parse_scores(text: str, valid_keys: set[str]) -> dict[str, dict]:
         score = row.get("score")
         if isinstance(score, bool) or not isinstance(score, (int, float)):
             continue
-        out[row["key"]] = {"score": max(0, min(100, int(round(score)))), "note": str(row.get("note", ""))}
+        out[row["key"]] = {"score": max(0, min(100, int(round(score)))), "note": clean_note(row.get("note", ""))}
     missing = valid_keys - set(out)
     if missing:
         raise ValueError(f"{len(missing)} keys were not scored, e.g. {sorted(missing)[0]}")
