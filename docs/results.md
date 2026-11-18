@@ -61,3 +61,36 @@ Never as 決してしない, and values that are the key name itself (`Flow Spaw
 
 My reading of 30 random flags: about 20 real errors, 6 debatable, 4 style remarks the reviewer
 was told not to make (されました versus 済み, 空の versus 空). Not yet judged by a native speaker.
+
+## 2026-11-19: blind 0-100 scoring by a second model (Opus 5.5)
+
+`services/score`: the scorer sees English, translation and code, never the reviewer's findings
+or the labels, and rates every string from 0 (fine) to 100 (clearly wrong). One run.
+
+Known truth (`injected.ja.jsonl`, 276 strings, 56 wrong):
+
+| threshold | flagged | precision | recall |
+|---:|---:|---:|---:|
+| 41 | 56 | 1.000 | 1.000 |
+| 61 | 54 | 1.000 | 0.964 |
+| 81 | 48 | 1.000 | 0.857 |
+
+AUROC 1.0: the lowest score of a wrong string is 50, the highest score of a correct one is 40.
+This set is easy, so it shows the scale is used consistently, not that the scorer is perfect.
+
+Japanese field audit (the same 2,000 OmniRoute strings):
+
+| | 0-20 | 21-40 | 41-60 | 61-80 | 81-100 |
+|---|---:|---:|---:|---:|---:|
+| 108 strings the reviewer flagged | 0 | 0 | 30 | 45 | 33 |
+| 1,892 strings it did not flag | 1,376 | 324 | 91 | 28 | 73 |
+
+- No reviewer flag was scored as fine. 78 of 108 (72%) are rated wrong (61 or more); the other
+  30 are rated "unnatural but the meaning survives", which matches the style remarks seen by hand.
+- The scorer rates 101 unflagged strings at 61 or more. Most are not sense errors but values
+  that were never translated: the key's own name (`accountId` for Account ID), the English left
+  as it is, or a translation of a placeholder English string (`Mcp Card Description`). These
+  are detectable without a model.
+
+Limits: the scorer and the reviewer are models from the same family, so agreement between them
+is weaker evidence than a native speaker's judgment. No human has judged these strings.
