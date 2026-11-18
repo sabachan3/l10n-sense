@@ -24,7 +24,8 @@ a translated identifier or code value, a broken placeholder
 Judge against what the English means in this app; use the code to decide that. Rate every key.
 
 Reply with one JSON object and nothing else:
-{{"scores": [{{"key": "<key>", "score": <0-100>, "note": "<under 15 words, in {language}>"}}]}}"""
+{{"scores": [{{"key": "<key>", "score": <0-100>, "note": "<under 15 words, in {language}>", \
+"fix": "<corrected translation when the score is 41 or more, otherwise an empty string>"}}]}}"""
 
 LANGUAGE_NAMES = {"ja": "Japanese", "zh": "Chinese", "de": "German", "fr": "French", "es": "Spanish", "ko": "Korean"}
 
@@ -39,10 +40,14 @@ def build_prompt(case: dict) -> str:
 NOTE_LIMIT = 120
 
 
-def clean_note(note) -> str:
-    """Model-written notes are untrusted: one line, no control characters, bounded length."""
+FIX_LIMIT = 2000
+PROMPT_VERSION = 2  # bump when INSTRUCTIONS change, so cached scores are not reused across prompts
+
+
+def clean_note(note, limit: int = NOTE_LIMIT) -> str:
+    """Model-written text is untrusted: one line, no control characters, bounded length."""
     text = "".join(char if char.isprintable() else " " for char in str(note))
-    return " ".join(text.split())[:NOTE_LIMIT]
+    return " ".join(text.split())[:limit]
 
 
 def parse_scores(text: str, valid_keys: set[str]) -> dict[str, dict]:
@@ -60,7 +65,8 @@ def parse_scores(text: str, valid_keys: set[str]) -> dict[str, dict]:
         score = row.get("score")
         if isinstance(score, bool) or not isinstance(score, (int, float)):
             continue
-        out[row["key"]] = {"score": max(0, min(100, int(round(score)))), "note": clean_note(row.get("note", ""))}
+        out[row["key"]] = {"score": max(0, min(100, int(round(score)))), "note": clean_note(row.get("note", "")),
+                           "fix": clean_note(row.get("fix") or "", FIX_LIMIT)}
     missing = valid_keys - set(out)
     if missing:
         raise ValueError(f"{len(missing)} keys were not scored, e.g. {sorted(missing)[0]}")

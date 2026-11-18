@@ -19,7 +19,10 @@ def test_prompt_is_blind_to_labels_and_fixes():
 
 def test_parse_clamps_scores_and_requires_every_key():
     reply = '{"scores": [{"key": "a", "score": 130, "note": "端子は電気部品"}, {"key": "b", "score": -5}, {"key": "zzz", "score": 50}]}'
-    assert score_lib.parse_scores(reply, {"a", "b"}) == {"a": {"score": 100, "note": "端子は電気部品"}, "b": {"score": 0, "note": ""}}
+    assert score_lib.parse_scores(reply, {"a", "b"}) == {"a": {"score": 100, "note": "端子は電気部品", "fix": ""},
+                                                         "b": {"score": 0, "note": "", "fix": ""}}
+    with_fix = '{"scores": [{"key": "a", "score": 90, "note": "n", "fix": "ターミナル"}]}'
+    assert score_lib.parse_scores(with_fix, {"a"})["a"]["fix"] == "ターミナル"
     with pytest.raises(ValueError):
         score_lib.parse_scores('{"scores": [{"key": "a", "score": 10}]}', {"a", "b"})
     with pytest.raises(ValueError):

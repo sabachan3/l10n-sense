@@ -125,3 +125,12 @@ Security note: the first Codex runs used the default tool set under a read-only 
 turned out to allow reading local files. All acting tools are disabled now and
 `services/llm_codex/eval_isolation.py` checks it. The notes Codex returned in those runs were
 scanned: 1,360 notes, longest 42 characters, none with paths, keys or other foreign content.
+
+## 2026-11-19: the command end to end
+
+`l10n_lint.py check` on three sections of OmniRoute's `ja.json` (346 strings, 19 model calls,
+Claude scorer, code context): 34 fail, 45 warn, 267 ok. A second run made 0 calls (cache).
+Failures include NPM as 故宮, Anthropic as 人間的, About as 約について, running as 走っている.
+
+Scoring prompt version 2 (adds a `fix` field) on the known-truth benchmark, default Claude
+model: precision 1.0, recall 0.964, no false alarms (`scripts/eval.sh`).
