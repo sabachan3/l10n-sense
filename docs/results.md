@@ -94,3 +94,34 @@ Japanese field audit (the same 2,000 OmniRoute strings):
 
 Limits: the scorer and the reviewer are models from the same family, so agreement between them
 is weaker evidence than a native speaker's judgment. No human has judged these strings.
+
+## 2026-11-19: second scorer from another vendor (Codex, gpt-6-astra, high effort)
+
+Known truth (`injected.ja.jsonl`): Codex and Opus 5.5 each rate the same 54 of 56 wrong strings
+at 61 or more, with no correct string above 40. Agreement 100%, both AUROC 1.0.
+
+Japanese field audit: Codex scored 68 of the 100 cases (1,360 strings) before the account hit
+its usage limit; the other 32 cases are not scored yet (the run resumes where it stopped).
+
+| on the 1,360 strings both scored | count |
+|---|---:|
+| both rate it wrong (61+) | 70 |
+| only Opus rates it wrong | 29 |
+| only Codex rates it wrong | 26 |
+| neither | 1,235 |
+
+Agreement on wrong / not wrong 96.0%, Cohen's kappa 0.70, Spearman correlation of the scores
+0.78, median score difference 5 points (90th percentile 18).
+
+- Of the 55 disputed strings, 27 are rated at least "unnatural" by both: the two agree that
+  something is off and differ on how bad it is (55 against 70). 21 are real disagreements,
+  where one scorer says fine (20 or less).
+- Of the reviewer's findings in this part: 43 confirmed by both, 15 disputed, 8 unnatural, 0 fine.
+- 57 of the 70 confirmed errors need a model; 13 are also caught by the deterministic rules.
+- Half of the rule hits (16 of 31) are disputed: one scorer accepts a camelCase identifier such
+  as `accountId` as the label for "Account ID". A rule decides this the same way every time.
+
+Security note: the first Codex runs used the default tool set under a read-only sandbox, which
+turned out to allow reading local files. All acting tools are disabled now and
+`services/llm_codex/eval_isolation.py` checks it. The notes Codex returned in those runs were
+scanned: 1,360 notes, longest 42 characters, none with paths, keys or other foreign content.
