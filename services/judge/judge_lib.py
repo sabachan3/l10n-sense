@@ -58,3 +58,20 @@ def summarize(verdicts: dict[str, str], total: int) -> dict:
 
 def _read(path: Path) -> list[dict]:
     return [json.loads(line) for line in Path(path).read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def request_allowed(method: str, host: str | None, origin: str | None, content_type: str | None, port: int) -> bool:
+    """Only the page this server serves may talk to it.
+
+    Host must be this server (blocks DNS rebinding, where another site's name resolves to
+    127.0.0.1). For POST the body must be declared as JSON (a cross-site form or `no-cors`
+    fetch cannot send that type) and Origin, when a browser sends one, must be this server.
+    """
+    own_hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
+    if host not in own_hosts:
+        return False
+    if method != "POST":
+        return True
+    if (content_type or "").split(";")[0].strip().lower() != "application/json":
+        return False
+    return origin is None or origin in {f"http://{name}" for name in own_hosts}

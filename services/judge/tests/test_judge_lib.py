@@ -48,3 +48,17 @@ def test_summary_reports_both_precisions():
     assert (summary["judged"], summary["error"], summary["unsure"], summary["not_error"]) == (4, 2, 1, 1)
     assert summary["precision"] == pytest.approx(2 / 3) and summary["precision_strict"] == 0.5
     assert judge_lib.summarize({}, 10)["precision"] is None
+
+
+def test_only_the_local_page_may_call_the_server():
+    allowed = judge_lib.request_allowed
+    assert allowed("GET", "127.0.0.1:8765", None, None, 8765)
+    assert allowed("GET", "localhost:8765", None, None, 8765)
+    assert not allowed("GET", "evil.example:8765", None, None, 8765)       # DNS rebinding
+    assert not allowed("GET", "127.0.0.1:9999", None, None, 8765)
+    assert not allowed("GET", None, None, None, 8765)
+    assert allowed("POST", "127.0.0.1:8765", "http://127.0.0.1:8765", "application/json", 8765)
+    assert allowed("POST", "127.0.0.1:8765", None, "application/json; charset=utf-8", 8765)   # curl
+    assert not allowed("POST", "127.0.0.1:8765", "https://evil.example", "application/json", 8765)
+    assert not allowed("POST", "127.0.0.1:8765", "http://127.0.0.1:8765", "text/plain", 8765)  # cross-site form
+    assert not allowed("POST", "127.0.0.1:8765", "null", "application/json", 8765)

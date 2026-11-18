@@ -44,7 +44,16 @@ def main() -> None:
         def _json(self, status: int, payload) -> None:
             self._send(status, json.dumps(payload, ensure_ascii=False).encode(), "application/json; charset=utf-8")
 
+        def _allowed(self, method: str) -> bool:
+            ok = judge_lib.request_allowed(method, self.headers.get("Host"), self.headers.get("Origin"),
+                                           self.headers.get("Content-Type"), args.port)
+            if not ok:
+                self._json(403, {"error": "forbidden"})
+            return ok
+
         def do_GET(self):
+            if not self._allowed("GET"):
+                return
             if self.path == "/":
                 self._send(200, page, "text/html; charset=utf-8")
             elif self.path == "/api/items":
@@ -54,6 +63,8 @@ def main() -> None:
                 self._json(404, {"error": "not found"})
 
         def do_POST(self):
+            if not self._allowed("POST"):
+                return
             if self.path != "/api/judge":
                 return self._json(404, {"error": "not found"})
             try:
