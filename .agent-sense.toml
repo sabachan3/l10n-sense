@@ -1,0 +1,14 @@
+# agent-sense: local checks for work done with coding agents (optional; nothing here is needed to use l10n-sense)
+[done]
+test = "scripts/test.sh"
+ignore = ["features.json"]
+
+[hook]
+checks = ["done"]
+
+[all]
+checks = ["done", "deps", "context", "boundary"]
+
+[boundary]
+# services/llm and services/llm_codex are run as subprocesses by path; that call is their contract (contracts/README.md)
+allow = ["review -> llm", "score -> llm", "score -> llm_codex"]

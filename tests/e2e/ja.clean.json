@@ -1,0 +1,8 @@
+{
+  "greeting": "こんにちは、{name}さん！",
+  "accountId": "アカウントID",
+  "cancel": "キャンセル",
+  "delete": "削除",
+  "settings": "設定",
+  "saveHint": "移動する前に変更を保存してください"
+}

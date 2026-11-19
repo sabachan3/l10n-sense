@@ -1,0 +1,11 @@
+{
+  "summary": {"strings": 6, "fail": 5, "review": 0, "warn": 0, "ok": 1},
+  "rules": {
+    "greeting": ["placeholder"],
+    "accountId": ["key_as_value"],
+    "cancel": ["empty"],
+    "delete": ["missing"],
+    "settings": [],
+    "saveHint": ["untranslated"]
+  }
+}

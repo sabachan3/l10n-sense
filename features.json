@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "features": [
+    {
+      "id": "rules-without-model",
+      "behavior": "`check --no-model` reports placeholder mismatches, empty and missing translations, key names used as translations and text left untranslated, with the same result every time.",
+      "verify": "uv run --quiet --with pytest --with pyyaml pytest -q services/rules/tests",
+      "state": "passing"
+    },
+    {
+      "id": "locale-formats",
+      "behavior": "JSON (nested, flat, Chrome, ARB), YAML, gettext, Android, iOS and Xcode String Catalog files are read into one key to string shape.",
+      "verify": "uv run --quiet --with pytest --with pyyaml pytest -q services/formats/tests",
+      "state": "passing"
+    },
+    {
+      "id": "code-context",
+      "behavior": "Each key's usage is found in the code for t(\"key\") style calls, whole-sentence keys and Android references.",
+      "verify": "uv run --quiet --with pytest --with pyyaml pytest -q services/extract/tests",
+      "state": "passing"
+    },
+    {
+      "id": "verdicts-report-exit",
+      "behavior": "Each string gets fail, review, warn or ok from rules and scores, and the report v1 and the exit code follow --warn, --fail and --fail-on.",
+      "verify": "uv run --quiet --with pytest --with pyyaml pytest -q services/check/tests services/score/tests",
+      "state": "passing"
+    },
+    {
+      "id": "check-command",
+      "behavior": "The check command sends code context to the scorer, never reads symlinked files or files outside --src, caches scores outside the project, rejects a planted cache, requires two scorers to agree, and reports unscored strings.",
+      "verify": "uv run --quiet --with pytest --with pyyaml pytest -q tests",
+      "state": "passing"
+    },
+    {
+      "id": "model-cli-lockdown",
+      "behavior": "Model calls go through the local Claude Code and Codex CLIs with acting tools off and fail cleanly when the CLI fails.",
+      "verify": "uv run --quiet --with pytest --with pyyaml pytest -q services/llm/tests services/llm_codex/tests",
+      "state": "passing"
+    },
+    {
+      "id": "installed-wheel",
+      "behavior": "The built wheel installs into a clean environment and the installed command finds the known problems in tests/e2e, passes the clean file, and exits 2 on an unreadable file.",
+      "verify": "scripts/e2e.sh",
+      "state": "passing"
+    },
+    {
+      "id": "scorer-ship-gate",
+      "behavior": "The default scorer reaches precision at least 0.9 at recall at least 0.7 on the known-truth Japanese benchmark (makes model calls).",
+      "verify": "scripts/eval.sh",
+      "state": "passing"
+    }
+  ]
+}

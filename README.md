@@ -108,17 +108,21 @@ language that does not use it.
 | [services/llm/](services/llm/), [services/llm_codex/](services/llm_codex/) | text completion through the local Claude Code and Codex CLIs, locked down to text in, text out |
 | [services/bench/](services/bench/), [data/bench/](data/bench/) | benchmarks with known truth |
 | [services/review/](services/review/), [services/judge/](services/judge/) | the earlier flag-only reviewer and a local page for judging findings by hand |
+| [tests/](tests/), [scripts/](scripts/) | command-level tests and end-to-end fixtures; setup, gate, end-to-end and eval scripts |
 
 ## Develop
 
 ```bash
-git config core.hooksPath .githooks   # once
-scripts/test.sh                       # gate tests: under 1 s, no model, also the pre-commit hook
+scripts/setup.sh                      # once: commit hook, environment, gate
+scripts/test.sh                       # gate tests: about 1 s, no model, also the pre-commit hook
+scripts/e2e.sh                        # builds the wheel, installs it, runs it on tests/e2e (rules only)
 scripts/eval.sh                       # periodic eval: real model on the known-truth benchmark
 scripts/eval.sh codex                 # plus the Codex isolation check and the Codex scorer
 ```
 
 Ship gate for a scorer: precision at least 0.9 at recall at least 0.7 on `data/bench/injected.ja.jsonl`.
+
+Coding agents: start at [CLAUDE.md](CLAUDE.md). Current state is in [PROGRESS.md](PROGRESS.md), past decisions in [DECISIONS.md](DECISIONS.md).
 
 ## Safety
 

@@ -1,0 +1,8 @@
+{
+  "greeting": "Hello, {name}!",
+  "accountId": "Account ID",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "settings": "Settings",
+  "saveHint": "Save your changes before leaving"
+}
