@@ -55,12 +55,12 @@ l10n-sense check ... --second codex
 | verdict | meaning | default exit code |
 |---|---|---|
 | `fail` | a rule fired, or the score is 61 or more (with `--second`: both scorers) | 1 |
-| `review` | two scorers ran and only one says wrong | 0 |
+| `review` | two scorers were asked for and only one says wrong (the other disagrees or gave no score) | 0 |
 | `warn` | 41 to 60: unnatural, but the meaning survives | 0 |
 | `ok` | nothing found | 0 |
 
 `--warn`, `--fail` and `--fail-on` change the thresholds and what breaks a build. `--format json`
-or `--out report.json` gives the full report. Exit code 2 means the files could not be read.
+or `--out report.json` gives the full report. Exit code 2 means a file could not be read, parsed or written.
 A workflow to copy: [docs/github-actions.yml](docs/github-actions.yml).
 
 ### Locale file formats
@@ -83,7 +83,7 @@ Ruby, PHP, Go, Swift, Kotlin, Java and Dart sources.
 
 Nothing is hosted and there is no API key. Model calls go through a CLI you are already logged
 in to: Claude Code by default, Codex with `--scorer codex` or `--second codex`. One call covers
-20 strings, so a 1,000-string file is 50 calls per scorer. Scores are cached in
+20 strings, so a 1,000-string file is at least 50 calls per scorer (more when the keys fall into many namespaces, which are never mixed in one call). Scores are cached in
 a per-project file under your user cache directory (`--cache` to choose another); an unchanged
 string with unchanged code is never scored twice. The
 number of calls is printed before they start. Calls count against your own plan's usage limit.
@@ -129,11 +129,14 @@ Coding agents: start at [CLAUDE.md](CLAUDE.md). Current state is in [PROGRESS.md
 The strings and code under review are untrusted input, and they are sent to a model.
 
 - Model CLIs run with every acting tool off (no shell, no file access, no network tools), from an
-  empty directory. `services/llm_codex/eval_isolation.py` checks that with a canary file.
+  empty directory. `services/llm_codex/eval_isolation.py` checks the Codex service with a canary
+  file; the Claude service's flags are pinned by unit tests.
 - Only files under `--src` are read; symlinks are not followed.
 - The score cache lives outside the project by default and every cached entry is validated
   before use, so a cache file committed to a repository cannot pass a wrong string.
-- Everything printed is stripped of terminal control characters.
+- Text output and error messages replace control characters with spaces. JSON, on stdout and in
+  the `--out` file, writes every invisible character (controls, direction marks and overrides,
+  zero-width characters) as a `\u` escape, so the data is unchanged and nothing can drive a terminal.
 
 ## Limits
 

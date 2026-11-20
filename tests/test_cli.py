@@ -2,6 +2,8 @@
 
 import json
 import sys
+
+import pytest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -174,7 +176,71 @@ def test_json_format_goes_through_json_text(tmp_path, capsys, monkeypatch):
     assert capsys.readouterr().out.strip() == "SENTINEL"
 
 
-def test_unreadable_file_error_is_cleaned(tmp_path, capsys):
-    code = l10n_lint.main(["check", "--source", str(tmp_path / f"en{ESC}[31m.json"), "--target", str(tmp_path / "ja.json"),
-                           "--lang", "ja", "--no-model"])
-    assert code == 2 and ESC not in capsys.readouterr().err
+def test_error_from_the_check_is_cleaned(tmp_path, capsys, monkeypatch):
+    def boom(*args, **kwargs):
+        raise ValueError(f"bad {ESC}[31m {RLO} value")
+
+    monkeypatch.setattr(l10n_lint, "check", boom)
+    code = l10n_lint.main(["check", "--target", str(tmp_path / "ja.json"), "--lang", "ja", "--no-model"])
+    err = capsys.readouterr().err
+    assert code == 2 and "bad" in err and ESC not in err and RLO not in err
+
+
+INVISIBLE = [chr(code) for code in (0x7F, 0x9B, 0x202E, 0x2028, 0x2066, 0x200E, 0x200F, 0x061C, 0x200B, 0xFEFF, 0x00AD,
+                                    0xE0001, 0xD800)]
+
+
+def test_json_text_escapes_every_invisible_character_and_keeps_the_data():
+    report = {"strings": [{"key": "k" + "".join(INVISIBLE), "note": "".join(INVISIBLE) + " ok"}]}
+    text = l10n_lint.json_text(report)
+    assert not any(char in text for char in INVISIBLE)
+    assert json.loads(text) == report
+    text.encode("utf-8")  # a lone surrogate would raise here
+
+
+def test_out_file_is_escaped_like_stdout(tmp_path):
+    root = project(tmp_path)
+    source, target = root / "locales/en.json", root / "locales/ja.json"
+    hostile = "x" + "".join(INVISIBLE[:-1])
+    for path in (source, target):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data["hostile"] = hostile
+        path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    l10n_lint.main(["check", "--source", str(source), "--target", str(target), "--lang", "ja", "--no-model",
+                    "--out", str(root / "report.json")])
+    written = (root / "report.json").read_text(encoding="utf-8")
+    assert not any(char in written for char in INVISIBLE[:-1])
+    assert hostile in [entry["source"] for entry in json.loads(written)["strings"]]
+
+
+def test_unknown_argument_is_cleaned(capsys):
+    with pytest.raises(SystemExit) as exit_info:
+        l10n_lint.main(["check", "--target", "x", "--lang", "ja", f"--bogus{ESC}[31m{RLO}{BEL}"])
+    err = capsys.readouterr().err
+    assert exit_info.value.code == 2 and "bogus" in err and not any(char in err for char in (ESC, RLO, BEL))
+
+
+def test_broken_yaml_and_unwritable_out_exit_2_without_a_traceback(tmp_path, capsys):
+    pytest.importorskip("yaml")
+    (tmp_path / "en.yml").write_text("a: b\n", encoding="utf-8")
+    (tmp_path / "ja.yml").write_text("a: [unclosed\n", encoding="utf-8")
+    assert l10n_lint.main(["check", "--source", str(tmp_path / "en.yml"), "--target", str(tmp_path / "ja.yml"),
+                           "--lang", "ja", "--no-model"]) == 2
+    assert "not valid YAML" in capsys.readouterr().err
+    (tmp_path / "p").mkdir()
+    root = project(tmp_path / "p")
+    (root / "outdir").mkdir()
+    assert l10n_lint.main(["check", "--source", str(root / "locales/en.json"), "--target", str(root / "locales/ja.json"),
+                           "--lang", "ja", "--no-model", "--out", str(root / "outdir")]) == 2
+
+
+def test_one_scorer_alone_cannot_fail_a_string_when_two_were_asked_for(tmp_path):
+    class HalfBroken(FakeScorer):
+        def __call__(self, service, prompt, model):
+            if service == "claude":
+                raise RuntimeError("no answer")
+            return super().__call__(service, prompt, model)
+
+    report, _ = run(tmp_path, HalfBroken({"codex": {"kvk.draw": 90, "kvk.seed": 90}}), "--second", "codex")
+    assert verdicts(report)["kvk.draw"] == "review" and verdicts(report)["kvk.seed"] == "review"
+    assert report["meta"]["unscored"] > 0

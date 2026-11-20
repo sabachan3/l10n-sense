@@ -19,6 +19,14 @@ def test_verdict(rules, score, second, expected):
     assert check_lib.verdict(rules, score, second, warn=41, fail=61) == expected
 
 
+@pytest.mark.parametrize("rules,score,second,expected", [
+    ([], 90, None, "review"), ([], None, 90, "review"),   # one opinion cannot fail a string when two were asked for
+    ([], 90, 80, "fail"), ([], 90, 50, "review"), ([], 50, None, "warn"), ([], None, None, "ok"), (RULE, None, None, "fail"),
+])
+def test_verdict_when_two_scorers_were_asked_for(rules, score, second, expected):
+    assert check_lib.verdict(rules, score, second, warn=41, fail=61, two=True) == expected
+
+
 def report(second=None):
     source = {"a": "Terminal", "b": "Save", "c": "Round {n}", "d": "Created"}
     target = {"a": "端子", "b": "保存", "c": "ラウンド", "d": "作成されました"}

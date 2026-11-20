@@ -60,16 +60,16 @@ Gate green, no debug output or scratch files left in the tree (`runs/` and `dist
 ## Hard constraints
 
 1. Services never import each other. They exchange the shapes in `contracts/README.md`.
-   `l10n_sense/cli.py` composes them; `score` and `review` start the two model services as
-   subprocesses, which is the contract of those services.
+   `l10n_sense/cli.py` composes them. The model services are started as subprocesses, which is
+   their contract: `cli.py` and `score` start both, `review` starts `services/llm` only.
 2. No hosted model API and no API key. Model calls go through `services/llm` (Claude Code CLI)
    or `services/llm_codex` (Codex CLI) and nothing else.
 3. Both CLIs run with every acting tool off, from an empty directory. Do not loosen those
    flags. `services/llm_codex/eval_isolation.py` checks the Codex service with a canary file and
    must keep passing; the Claude service's flags are pinned by `services/llm/tests`.
-4. Strings and code under review are untrusted. Text output and messages on stderr go through
-   `check_lib.clean`; JSON output goes through `cli.json_text`, which writes control and
-   direction characters as escapes. Only files under `--src` are read and symlinks are not followed.
+4. Strings and code under review are untrusted. Text output and every message on stderr, argparse
+   errors included, go through `check_lib.clean`. JSON, on stdout and in the `--out` file, goes
+   through `cli.json_text`, which writes every character of category Cc, Cf, Zl, Zp, Cs or Co as an escape. Only files under `--src` are read and symlinks are not followed.
 5. The default score cache stays outside the project and every cached entry is validated
    before use.
 6. The gate makes no model call and no network request, and stays under 1 s.

@@ -8,9 +8,10 @@ import json
 ORDER = {"fail": 0, "review": 1, "warn": 2, "ok": 3}
 
 
-def verdict(rules: list[dict], score: int | None, second: int | None, warn: int, fail: int) -> str:
-    """fail    a rule fired, or the scorer (both scorers, when two ran) rates it wrong
-    review  two scorers ran and only one rates it wrong: a person should look
+def verdict(rules: list[dict], score: int | None, second: int | None, warn: int, fail: int, two: bool = False) -> str:
+    """fail    a rule fired, or the scorer (both scorers, when two were asked for) rates it wrong
+    review  two scorers were asked for and only one rates it wrong, the other disagreeing or
+            having given no score: a person should look
     warn    unnatural but the meaning survives
     ok      nothing found (also when no model ran and no rule fired)"""
     if rules:
@@ -20,7 +21,8 @@ def verdict(rules: list[dict], score: int | None, second: int | None, warn: int,
         return "ok"
     wrong = [value >= fail for value in scores]
     if all(wrong):
-        return "fail"
+        # one opinion is not two: a scorer that failed to answer cannot confirm the other
+        return "review" if two and len(scores) < 2 else "fail"
     if any(wrong):
         return "review"
     return "warn" if any(value >= warn for value in scores) else "ok"
@@ -38,7 +40,7 @@ def build_report(source: dict, target: dict, rule_findings: list[dict], scores: 
                  "score": first["score"] if first else None, "note": first["note"] if first else "",
                  "fix": (first or {}).get("fix", "") or (second or {}).get("fix", ""),
                  "second_score": second["score"] if second else None, "second_note": second["note"] if second else ""}
-        entry["verdict"] = verdict(entry["rules"], entry["score"], entry["second_score"], warn, fail)
+        entry["verdict"] = verdict(entry["rules"], entry["score"], entry["second_score"], warn, fail, two=bool(meta.get("second")))
         strings.append(entry)
     counts = {name: sum(entry["verdict"] == name for entry in strings) for name in ORDER}
     return {"version": 1, "meta": meta, "thresholds": {"warn": warn, "fail": fail},

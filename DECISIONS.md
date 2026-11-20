@@ -37,7 +37,9 @@ One entry per decision that a later change could undo by accident. Newest first.
 ## 2026-11-19: with two scorers a string fails only when both say wrong
 
 - **Decision:** `--second` adds an independent scorer; one-sided findings get the verdict
-  `review` and exit code 0 by default.
+  `review` and exit code 0 by default. One-sided includes the case where one scorer gave no
+  score (it errored): the other cannot fail the string alone (fixed 2026-11-20; before that a
+  single surviving scorer could).
 - **Reason:** on real strings two vendors agreed on 96% of wrong / not wrong calls; the disputed
   rest is where false alarms sit.
 - **Rejected:** failing when either says wrong (more false alarms in a build gate).

@@ -17,9 +17,9 @@ import argparse
 import hashlib
 import json
 import os
-import re
 import subprocess
 import sys
+import unicodedata
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -44,14 +44,33 @@ MAX_SOURCE_BYTES = 1_000_000
 
 # json.dumps escapes the C0 controls itself. With ensure_ascii off it leaves DEL, the C1 controls
 # (0x9b starts an escape sequence on some terminals) and the direction overrides as they are.
-_JSON_UNSAFE = re.compile("[" + "".join(f"{chr(first)}-{chr(last)}" for first, last in (
-    (0x7F, 0x9F), (0x2028, 0x2029), (0x202A, 0x202E), (0x2066, 0x2069))) + "]")
+# Everything invisible is written as an escape: controls (Cc), format characters such as direction
+# marks, overrides, zero-width characters and tags (Cf), line and paragraph separators (Zl, Zp),
+# lone surrogates (Cs, which cannot be encoded at all) and private use (Co).
+_JSON_UNSAFE_CATEGORIES = {"Cc", "Cf", "Zl", "Zp", "Cs", "Co"}
+
+
+def _json_escape(char: str) -> str:
+    code = ord(char)
+    if code > 0xFFFF:  # JSON escapes are UTF-16: characters outside the BMP take a surrogate pair
+        code -= 0x10000
+        return f"\\u{0xD800 + (code >> 10):04x}\\u{0xDC00 + (code & 0x3FF):04x}"
+    return f"\\u{code:04x}"
 
 
 def json_text(report: dict) -> str:
-    """The report as JSON that is safe to print: same data, risky characters written as escapes."""
+    """The report as JSON that is safe to print or store: same data, invisible characters as escapes."""
     text = json.dumps(report, ensure_ascii=False, indent=1)
-    return _JSON_UNSAFE.sub(lambda match: f"\\u{ord(match.group()):04x}", text)
+    return "".join(_json_escape(char) if char != "\n" and unicodedata.category(char) in _JSON_UNSAFE_CATEGORIES else char
+                   for char in text)
+
+
+class Parser(argparse.ArgumentParser):
+    """argparse echoes unknown arguments as they were typed; clean them like every other message."""
+
+    def _print_message(self, message, file=None):
+        if message:
+            super()._print_message("\n".join(check_lib.clean(line) for line in message.split("\n")), file)
 
 
 def default_cache_path(project: Path) -> Path:
@@ -170,7 +189,7 @@ def check(args, call=call_service, log=print) -> tuple[dict, int]:
 
 
 def main(argv: list[str] | None = None, call=call_service) -> int:
-    parser = argparse.ArgumentParser(prog="l10n-sense", description=__doc__.split("\n")[0])
+    parser = Parser(prog="l10n-sense", description=__doc__.split("\n")[0])
     commands = parser.add_subparsers(dest="command", required=True)
     run = commands.add_parser("check", help="audit one locale file against its source locale")
     run.add_argument("--source", type=Path, help="source locale file; not needed for .po and .xcstrings, which hold both")
@@ -196,12 +215,12 @@ def main(argv: list[str] | None = None, call=call_service) -> int:
 
     try:
         report, code = check(args, call=call, log=lambda message: print(message, file=sys.stderr, flush=True))
+        if args.out:
+            args.out.parent.mkdir(parents=True, exist_ok=True)
+            args.out.write_text(json_text(report), encoding="utf-8")
     except (formats_lib.FormatError, OSError, ValueError) as exc:
         print(f"l10n-sense: {check_lib.clean(exc)}", file=sys.stderr)
         return 2
-    if args.out:
-        args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
     print(json_text(report) if args.format == "json" else check_lib.format_text(report))
     return code
 

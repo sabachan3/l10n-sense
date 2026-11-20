@@ -28,6 +28,10 @@ Updated at the end of every working session. Newest state on top.
   and file errors on stderr are cleaned, JSON output writes control and direction characters as
   escapes (`cli.json_text`), `scripts/e2e.sh` checks that every `force-include` target is in the
   installed package, and statements in `CLAUDE.md` and `DECISIONS.md` were corrected.
+- 2026-11-20: second review. The `--out` file and all invisible characters (not only overrides)
+  now go through `cli.json_text`; argparse errors are cleaned; broken YAML and an unwritable
+  `--out` exit 2 instead of a traceback; with `--second`, a string scored by only one scorer gets
+  `review`, not `fail`.
 
 ## In Progress
 

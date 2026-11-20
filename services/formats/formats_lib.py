@@ -80,7 +80,10 @@ def parse_yaml(text: str) -> dict[str, str]:
         import yaml
     except ImportError as exc:
         raise FormatError("YAML locale files need PyYAML: pip install pyyaml") from exc
-    data = yaml.safe_load(text)
+    try:
+        data = yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        raise FormatError(f"not valid YAML: {str(exc).splitlines()[0]}") from exc
     if not isinstance(data, dict):
         raise FormatError("a YAML locale file must hold a mapping")
     if len(data) == 1:  # Rails style: one top-level key naming the locale
