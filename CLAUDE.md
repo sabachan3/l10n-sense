@@ -67,14 +67,15 @@ Gate green, no debug output or scratch files left in the tree (`runs/` and `dist
 3. Both CLIs run with every acting tool off, from an empty directory. Do not loosen those
    flags. `services/llm_codex/eval_isolation.py` checks the Codex service with a canary file and
    must keep passing; the Claude service's flags are pinned by `services/llm/tests`.
-4. Strings and code under review are untrusted. Text output and every message on stderr, argparse
-   errors included, go through `check_lib.clean`. JSON, on stdout and in the `--out` file, goes
+4. Strings and code under review are untrusted. Text output and every message that carries text
+   from a file, a model or the command line (argparse error text included, not its help) go
+   through `check_lib.clean`. JSON, on stdout and in the `--out` file, goes
    through `cli.json_text`, which writes every character of category Cc, Cf, Zl, Zp, Cs or Co as an escape. Only files under `--src` are read and symlinks are not followed.
 5. The default score cache stays outside the project and every cached entry is validated
    before use.
 6. The gate makes no model call and no network request, and stays under 1 s.
-7. A string a scorer could not rate is reported with a null score and counted in
-   `meta.unscored`. It is never passed as scored.
+7. A string that lacks a score from any scorer that was asked for is reported with a null score
+   and counted in `meta.unscored`, and the text report says so. It is never passed as scored.
 8. Rules stay conservative: a rule that fires on brand names or one-word labels is a bug.
 9. Report format changes bump `version` and update `contracts/README.md` in the same commit.
 10. A runtime service added to the wheel needs its `force-include` line in `pyproject.toml`;

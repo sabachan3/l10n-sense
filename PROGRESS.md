@@ -28,10 +28,17 @@ Updated at the end of every working session. Newest state on top.
   and file errors on stderr are cleaned, JSON output writes control and direction characters as
   escapes (`cli.json_text`), `scripts/e2e.sh` checks that every `force-include` target is in the
   installed package, and statements in `CLAUDE.md` and `DECISIONS.md` were corrected.
-- 2026-11-20: second review. The `--out` file and all invisible characters (not only overrides)
-  now go through `cli.json_text`; argparse errors are cleaned; broken YAML and an unwritable
+- 2026-11-20: second review. The `--out` file goes through `cli.json_text`, which now escapes six Unicode
+  categories (Cc, Cf, Zl, Zp, Cs, Co), not only overrides; argparse errors are cleaned; broken YAML and an unwritable
   `--out` exit 2 instead of a traceback; with `--second`, a string scored by only one scorer gets
   `review`, not `fail`.
+- 2026-11-20: third review. `--help` and usage errors print correctly on Python 3.14 terminals
+  again (the second review's argparse cleaning had mangled argparse's own colours; only the error
+  text is cleaned now). `meta.unscored` counts a string missing a score from either scorer and
+  the text report says so. Locale files of the wrong shape, a `--src` that is not a directory,
+  `--window` or `--workers` below 1 exit 2. The cache is checked for writability before any
+  model call, and a cache that cannot be saved no longer loses the report. Output to a stdout
+  that is not UTF-8 is escaped instead of crashing. Ctrl-C exits 130 with one line.
 
 ## In Progress
 

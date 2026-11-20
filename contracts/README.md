@@ -34,5 +34,5 @@ settings, from an empty directory. No hosted API is called from this repo.
 
 Each string: `key`, `source`, `target`, `rules` (list of `{rule, message}`), `score` and
 `second_score` (0-100 or null), `note`, `second_note`, `fix`, `verdict` (`fail`, `review`,
-`warn`, `ok`). `meta.unscored` counts strings a scorer could not rate (for example after a
+`warn`, `ok`). `meta.unscored` counts strings that lack a score from at least one scorer that was asked for (for example after a
 usage limit); they are reported with a null score, never silently passed as scored.

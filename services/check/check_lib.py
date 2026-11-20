@@ -79,6 +79,10 @@ def format_text(report: dict, show: tuple[str, ...] = ("fail", "review", "warn")
     summary = report["summary"]
     lines.append(f"{summary['strings']} strings: {summary['fail']} fail, {summary['review']} review, "
                  f"{summary['warn']} warn, {summary['ok']} ok")
+    unscored = (report.get("meta") or {}).get("unscored") or 0
+    if unscored:
+        lines.append(f"{unscored} strings were not scored by every scorer asked for (a model call failed); "
+                     "they are not counted as checked")
     return "\n".join(lines)
 
 

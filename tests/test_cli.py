@@ -1,6 +1,8 @@
 """End-to-end test of the command with a fake scorer: no model, no network."""
 
+import io
 import json
+import re
 import sys
 
 import pytest
@@ -170,7 +172,7 @@ def test_json_text_escapes_control_and_direction_characters_and_keeps_the_data()
 
 def test_json_format_goes_through_json_text(tmp_path, capsys, monkeypatch):
     root = project(tmp_path)
-    monkeypatch.setattr(l10n_lint, "json_text", lambda report: "SENTINEL")
+    monkeypatch.setattr(l10n_lint, "json_text", lambda report, ascii_only=False: "SENTINEL")
     l10n_lint.main(["check", "--source", str(root / "locales/en.json"), "--target", str(root / "locales/ja.json"),
                     "--lang", "ja", "--no-model", "--format", "json"])
     assert capsys.readouterr().out.strip() == "SENTINEL"
@@ -186,7 +188,7 @@ def test_error_from_the_check_is_cleaned(tmp_path, capsys, monkeypatch):
     assert code == 2 and "bad" in err and ESC not in err and RLO not in err
 
 
-INVISIBLE = [chr(code) for code in (0x7F, 0x9B, 0x202E, 0x2028, 0x2066, 0x200E, 0x200F, 0x061C, 0x200B, 0xFEFF, 0x00AD,
+INVISIBLE = [chr(code) for code in (0x7F, 0x9B, 0x202E, 0x2028, 0x2029, 0xE000, 0x2066, 0x200E, 0x200F, 0x061C, 0x200B, 0xFEFF, 0x00AD,
                                     0xE0001, 0xD800)]
 
 
@@ -244,3 +246,104 @@ def test_one_scorer_alone_cannot_fail_a_string_when_two_were_asked_for(tmp_path)
     report, _ = run(tmp_path, HalfBroken({"codex": {"kvk.draw": 90, "kvk.seed": 90}}), "--second", "codex")
     assert verdicts(report)["kvk.draw"] == "review" and verdicts(report)["kvk.seed"] == "review"
     assert report["meta"]["unscored"] > 0
+
+
+def test_help_keeps_argparse_colours_intact(capsys, monkeypatch):
+    monkeypatch.setenv("FORCE_COLOR", "1")
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    with pytest.raises(SystemExit) as exit_info:
+        l10n_lint.main(["check", "--help"])
+    out = capsys.readouterr().out
+    assert exit_info.value.code == 0 and "--target" in out
+    assert re.search(r"(?<!\x1b)\[\d+(;\d+)*m", out) is None  # no escape sequence with its ESC replaced
+
+
+def test_unscored_counts_a_string_the_second_scorer_missed_and_text_says_so(tmp_path, capsys):
+    class SecondBroken(FakeScorer):
+        def __call__(self, service, prompt, model):
+            if service == "codex":
+                raise RuntimeError("no answer")
+            return super().__call__(service, prompt, model)
+
+    report, code = run(tmp_path, SecondBroken({"claude": {"kvk.draw": 90}}), "--second", "codex")
+    assert report["meta"]["unscored"] == 4 and verdicts(report)["kvk.draw"] == "review"
+    capsys.readouterr()
+    l10n_lint.main(["check", "--source", str(tmp_path / "locales/en.json"), "--target", str(tmp_path / "locales/ja.json"),
+                    "--lang", "ja", "--src", str(tmp_path / "src"), "--cache", str(tmp_path / "cache.json"), "--second", "codex"],
+                   call=SecondBroken({"claude": {}}))
+    assert "4 strings were not scored" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("text", ["[]", "null", '"x"', '{"strings": []}', '{"strings": {"a": {"localizations": []}}}',
+                                  '{"strings": {"a": {"localizations": {"ja": null}}}}', '{"sourceLanguage": ["en"], "strings": {"a": {}}}'])
+def test_xcstrings_of_the_wrong_shape_exit_2(tmp_path, capsys, text):
+    path = tmp_path / "Localizable.xcstrings"
+    path.write_text(text, encoding="utf-8")
+    assert l10n_lint.main(["check", "--target", str(path), "--lang", "ja", "--no-model"]) == 2
+    assert "Traceback" not in capsys.readouterr().err
+
+
+def test_absent_file_and_bad_src_exit_2(tmp_path):
+    root = project(tmp_path)
+    base = ["check", "--source", str(root / "locales/en.json"), "--lang", "ja"]
+    assert l10n_lint.main([*base, "--target", str(root / "locales/absent.json"), "--no-model"]) == 2
+    scorer = FakeScorer({"claude": {}})
+    assert l10n_lint.main([*base, "--target", str(root / "locales/ja.json"), "--src", str(root / "nowhere"),
+                           "--cache", str(root / "c.json")], call=scorer) == 2
+    assert scorer.prompts == []
+
+
+@pytest.mark.parametrize("option", ["--window", "--workers"])
+def test_window_and_workers_below_one_are_usage_errors(option):
+    with pytest.raises(SystemExit) as exit_info:
+        l10n_lint.main(["check", "--target", "x.json", "--lang", "ja", option, "0"])
+    assert exit_info.value.code == 2
+
+
+def test_unwritable_cache_stops_before_any_model_call(tmp_path, capsys):
+    root = project(tmp_path)
+    (root / "cachedir").mkdir()
+    scorer = FakeScorer({"claude": {}})
+    code = l10n_lint.main(["check", "--source", str(root / "locales/en.json"), "--target", str(root / "locales/ja.json"),
+                           "--lang", "ja", "--cache", str(root / "cachedir")], call=scorer)
+    assert code == 2 and scorer.prompts == []
+
+
+def test_a_cache_that_cannot_be_saved_does_not_lose_the_report(tmp_path, capsys):
+    root = project(tmp_path)
+    cache = root / "cache.json"
+
+    class Spoiler(FakeScorer):
+        def __call__(self, service, prompt, model):
+            if cache.is_file():
+                cache.unlink()
+                cache.mkdir()
+            return super().__call__(service, prompt, model)
+
+    report, code = run(root, Spoiler({"claude": {"kvk.draw": 90}}))
+    assert verdicts(report)["kvk.draw"] == "fail" and "could not save the score cache" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("fmt", ["text", "json"])
+def test_stdout_that_is_not_utf8_gets_escapes_not_a_crash(tmp_path, monkeypatch, fmt):
+    root = project(tmp_path)
+    raw = io.BytesIO()
+    monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(raw, encoding="cp1252", newline=""))
+    code = l10n_lint.main(["check", "--source", str(root / "locales/en.json"), "--target", str(root / "locales/ja.json"),
+                           "--lang", "ja", "--no-model", "--format", fmt])
+    sys.stdout.flush()
+    text = raw.getvalue().decode("cp1252")
+    assert code == 1 and text
+    if fmt == "json":
+        assert any(entry["target"] == "KvK\u5f15\u304d\u5206\u3051" for entry in json.loads(text)["strings"])
+
+
+def test_interrupt_exits_130_with_one_line(tmp_path, capsys):
+    def interrupted(service, prompt, model):
+        raise KeyboardInterrupt
+
+    root = project(tmp_path)
+    code = l10n_lint.main(["check", "--source", str(root / "locales/en.json"), "--target", str(root / "locales/ja.json"),
+                           "--lang", "ja", "--cache", str(root / "cache.json"), "--workers", "1"], call=interrupted)
+    err = capsys.readouterr().err
+    assert code == 130 and "interrupted" in err and "Traceback" not in err

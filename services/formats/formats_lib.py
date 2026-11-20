@@ -233,6 +233,16 @@ def kind(path: Path) -> str:
 
 
 def load_pair(source_path: Path | None, target_path: Path, language: str) -> dict:
+    """Source and target strings of a locale file pair. Any file that cannot be understood is a
+    FormatError: valid JSON, XML or YAML of the wrong shape must not surface as a crash."""
+    try:
+        return _load_pair(source_path, target_path, language)
+    except (AttributeError, TypeError, KeyError, IndexError, RecursionError) as exc:
+        raise FormatError(f"{Path(target_path).name} is not in the shape a locale file of its kind has "
+                          f"({type(exc).__name__})") from exc
+
+
+def _load_pair(source_path: Path | None, target_path: Path, language: str) -> dict:
     target_kind = kind(target_path)
     if target_kind == "po":
         return parse_po(read_text(target_path))

@@ -58,19 +58,36 @@ def _json_escape(char: str) -> str:
     return f"\\u{code:04x}"
 
 
-def json_text(report: dict) -> str:
-    """The report as JSON that is safe to print or store: same data, invisible characters as escapes."""
+def utf8(stream) -> bool:
+    return (getattr(stream, "encoding", None) or "utf-8").lower().replace("-", "").replace("_", "") in ("utf8", "utf8sig")
+
+
+def write_out(text: str) -> None:
+    """Print to stdout whatever its encoding is. A redirected stdout on Windows is often a legacy
+    code page that cannot hold Japanese: characters it lacks are written as backslash escapes."""
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        encoding = getattr(sys.stdout, "encoding", None) or "ascii"
+        print(text.encode(encoding, "backslashreplace").decode(encoding))
+
+
+def json_text(report: dict, ascii_only: bool = False) -> str:
+    """The report as JSON that is safe to print or store: same data, invisible characters as escapes.
+    With `ascii_only` every non-ASCII character is an escape, for an output that is not UTF-8."""
+    if ascii_only:
+        return json.dumps(report, ensure_ascii=True, indent=1)
     text = json.dumps(report, ensure_ascii=False, indent=1)
     return "".join(_json_escape(char) if char != "\n" and unicodedata.category(char) in _JSON_UNSAFE_CATEGORIES else char
                    for char in text)
 
 
 class Parser(argparse.ArgumentParser):
-    """argparse echoes unknown arguments as they were typed; clean them like every other message."""
+    """argparse echoes unknown arguments as they were typed; clean them like every other message.
+    Only the error text is cleaned: help and usage are argparse's own and may carry its colours."""
 
-    def _print_message(self, message, file=None):
-        if message:
-            super()._print_message("\n".join(check_lib.clean(line) for line in message.split("\n")), file)
+    def error(self, message):
+        super().error(" ".join(check_lib.clean(line) for line in str(message).split("\n")))
 
 
 def default_cache_path(project: Path) -> Path:
@@ -93,6 +110,8 @@ def read_sources(root: Path | None) -> dict[str, str]:
     file contents are sent to a model, so a link to a private file must not be picked up."""
     if root is None:
         return {}
+    if not root.is_dir():
+        raise ValueError(f"--src {root} is not a directory")
     top = root.resolve()
     files = {}
     for path in sorted(root.rglob("*")):
@@ -172,18 +191,24 @@ def check(args, call=call_service, log=print) -> tuple[dict, int]:
             cache = {}
         if not isinstance(cache, dict):
             cache = {}
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        with cache_path.open("a", encoding="utf-8"):  # fail here, before any model call is paid for
+            pass
         try:
             scores = score_strings(pair, args.lang, files, args.scorer, args.model, args.window, args.workers, cache, call, log)
             if args.second:
                 second = score_strings(pair, args.lang, files, args.second, args.second_model, args.window,
                                        args.workers, cache, call, log)
         finally:
-            cache_path.parent.mkdir(parents=True, exist_ok=True)
-            cache_path.write_text(json.dumps(cache, ensure_ascii=False), encoding="utf-8")
+            try:
+                cache_path.write_text(json.dumps(cache, ensure_ascii=False), encoding="utf-8")
+            except (OSError, ValueError) as exc:  # the scores are in hand: report them, do not lose the run
+                log(f"[l10n-sense] could not save the score cache: {check_lib.clean(exc)}")
     scorable = [key for key in source if key in target and target[key].strip()]
     meta = {"language": args.lang, "source": str(args.source) if args.source else None, "target": str(args.target),
             "scorer": None if args.no_model else args.scorer, "second": args.second,
-            "unscored": 0 if args.no_model else sum(key not in scores for key in scorable)}
+            "unscored": 0 if args.no_model else sum(key not in scores or (bool(args.second) and key not in second)
+                                                    for key in scorable)}
     report = check_lib.build_report(source, target, rule_findings, scores, second, args.warn, args.fail, meta)
     return report, check_lib.exit_code(report, args.fail_on)
 
@@ -210,6 +235,8 @@ def main(argv: list[str] | None = None, call=call_service) -> int:
     run.add_argument("--format", choices=("text", "json"), default="text")
     run.add_argument("--out", type=Path, help="also write the full JSON report here")
     args = parser.parse_args(argv)
+    if args.window < 1 or args.workers < 1:
+        parser.error("--window and --workers must be 1 or more")
     if args.second and args.second == args.scorer and args.second_model == args.model:
         parser.error("--second must differ from --scorer: the same model twice is not an independent opinion")
 
@@ -221,7 +248,10 @@ def main(argv: list[str] | None = None, call=call_service) -> int:
     except (formats_lib.FormatError, OSError, ValueError) as exc:
         print(f"l10n-sense: {check_lib.clean(exc)}", file=sys.stderr)
         return 2
-    print(json_text(report) if args.format == "json" else check_lib.format_text(report))
+    except KeyboardInterrupt:
+        print("l10n-sense: interrupted; scores received so far are in the cache", file=sys.stderr)
+        return 130
+    write_out(json_text(report, ascii_only=not utf8(sys.stdout)) if args.format == "json" else check_lib.format_text(report))
     return code
 
 

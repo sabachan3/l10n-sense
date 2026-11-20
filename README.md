@@ -60,7 +60,7 @@ l10n-sense check ... --second codex
 | `ok` | nothing found | 0 |
 
 `--warn`, `--fail` and `--fail-on` change the thresholds and what breaks a build. `--format json`
-or `--out report.json` gives the full report. Exit code 2 means a file could not be read, parsed or written.
+or `--out report.json` gives the full report. Exit code 2 means the command could not do its job: a file could not be read, parsed or written, or the options were wrong.
 A workflow to copy: [docs/github-actions.yml](docs/github-actions.yml).
 
 ### Locale file formats
@@ -134,9 +134,12 @@ The strings and code under review are untrusted input, and they are sent to a mo
 - Only files under `--src` are read; symlinks are not followed.
 - The score cache lives outside the project by default and every cached entry is validated
   before use, so a cache file committed to a repository cannot pass a wrong string.
-- Text output and error messages replace control characters with spaces. JSON, on stdout and in
-  the `--out` file, writes every invisible character (controls, direction marks and overrides,
-  zero-width characters) as a `\u` escape, so the data is unchanged and nothing can drive a terminal.
+- Text output and error messages show printable characters only: anything else, which includes
+  the full-width space and the no-break space, is shown as an ordinary space and a newline as `⏎`.
+  JSON, on stdout and in the `--out` file, keeps the data unchanged and writes controls, format
+  characters (direction marks and overrides, zero-width characters), line and paragraph
+  separators, lone surrogates and private-use characters as `\u` escapes. Other spaces and
+  unassigned code points stay as they are.
 
 ## Limits
 
