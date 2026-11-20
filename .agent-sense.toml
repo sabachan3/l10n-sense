@@ -10,5 +10,5 @@ checks = ["done"]
 checks = ["done", "deps", "context", "boundary"]
 
 [boundary]
-# services/llm and services/llm_codex are run as subprocesses by path; that call is their contract (contracts/README.md)
+# services/llm and services/llm_codex are run as subprocesses by path; that call is their contract (contracts/README.md documents it for services/llm; llm_codex follows the same shape)
 allow = ["review -> llm", "score -> llm", "score -> llm_codex"]

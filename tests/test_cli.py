@@ -142,3 +142,39 @@ def test_android_strings_are_scored_in_one_call(tmp_path):
     code = l10n_lint.main(["check", "--source", str(tmp_path / "values/strings.xml"), "--target", str(tmp_path / "values-ja/strings.xml"),
                            "--lang", "ja", "--cache", str(tmp_path / "c.json"), "--out", str(tmp_path / "r.json")], call=scorer)
     assert code == 1 and len(scorer.prompts) == 1
+
+
+ESC, BEL, DEL, CSI, RLO = chr(0x1B), chr(0x07), chr(0x7F), chr(0x9B), chr(0x202E)
+
+
+def test_scorer_error_text_cannot_drive_the_terminal(tmp_path, capsys):
+    def hostile(service, prompt, model):
+        raise RuntimeError(f"model said {ESC}]0;title{BEL} {CSI}31m {RLO}")
+
+    run(tmp_path, hostile)
+    err = capsys.readouterr().err
+    assert "could not be scored" in err
+    assert not any(char in err for char in (ESC, BEL, CSI, RLO))
+
+
+def test_json_text_escapes_control_and_direction_characters_and_keeps_the_data():
+    hostile = f"evil{DEL}{CSI}31m{RLO}{ESC}[2J{chr(0x2028)}{chr(0x2066)} \u65e5\u672c\u8a9e"
+    report = {"strings": [{"key": hostile, "note": hostile}]}
+    text = l10n_lint.json_text(report)
+    assert not any(char in text for char in (ESC, DEL, CSI, RLO, chr(0x2028), chr(0x2066)))
+    assert json.loads(text) == report          # valid JSON, nothing dropped
+    assert "\u65e5\u672c\u8a9e" in text           # ordinary non-ASCII text stays readable
+
+
+def test_json_format_goes_through_json_text(tmp_path, capsys, monkeypatch):
+    root = project(tmp_path)
+    monkeypatch.setattr(l10n_lint, "json_text", lambda report: "SENTINEL")
+    l10n_lint.main(["check", "--source", str(root / "locales/en.json"), "--target", str(root / "locales/ja.json"),
+                    "--lang", "ja", "--no-model", "--format", "json"])
+    assert capsys.readouterr().out.strip() == "SENTINEL"
+
+
+def test_unreadable_file_error_is_cleaned(tmp_path, capsys):
+    code = l10n_lint.main(["check", "--source", str(tmp_path / f"en{ESC}[31m.json"), "--target", str(tmp_path / "ja.json"),
+                           "--lang", "ja", "--no-model"])
+    assert code == 2 and ESC not in capsys.readouterr().err

@@ -24,7 +24,7 @@ dependencies (PyYAML only for YAML files). User-facing description: [README.md](
 | `services/llm/`, `services/llm_codex/` | text completion through the local Claude Code and Codex CLIs |
 | `services/bench/`, `data/bench/` | known-truth and real-fix benchmarks (see `data/bench/NOTICE.md` for licences) |
 | `services/review/`, `services/judge/` | earlier flag-only reviewer; local page for judging findings by hand. Not shipped in the wheel |
-| `contracts/` | JSON Lines formats and the report format, with the validator |
+| `contracts/` | JSON Lines formats and the report format; the validator covers cases and findings, not the report |
 | `tests/` | command-level tests; `tests/e2e/` holds the fixtures for `scripts/e2e.sh` |
 | `docs/results.md` | every measurement, with its limits |
 
@@ -32,7 +32,7 @@ dependencies (PyYAML only for YAML files). User-facing description: [README.md](
 
 ```bash
 scripts/setup.sh     # hook path, environment, gate
-scripts/test.sh      # gate: about 1 s, no model, no network; also the pre-commit hook
+scripts/test.sh      # gate: under 1 s, no model, no network; also the pre-commit hook
 scripts/e2e.sh       # builds the wheel, installs it, runs the installed command on tests/e2e (rules only)
 scripts/eval.sh      # periodic: real model calls on data/bench/injected.ja.jsonl, a few minutes
 scripts/eval.sh codex  # plus the Codex isolation check and the Codex scorer
@@ -47,7 +47,8 @@ agent-sense features --run   # when agent-sense is installed: runs every verify 
 - A change to rules, verdicts, the report or any other output: `scripts/e2e.sh` passes, and the
   `evaluator` subagent (`.claude/agents/evaluator.md`) returned PASS on the diff.
 - A change to a prompt, to scoring, or to a model CLI call: `scripts/eval.sh` meets the ship gate.
-- New measurements are written to `docs/results.md` with sample size and limits.
+- New measurements are written to `docs/results.md` with sample size and limits, in the same commit
+  that mentions them anywhere else.
 - `PROGRESS.md` is updated, a decision that someone could later undo by accident is added to
   `DECISIONS.md`, and the work is committed.
 
@@ -58,24 +59,26 @@ Gate green, no debug output or scratch files left in the tree (`runs/` and `dist
 
 ## Hard constraints
 
-1. Services never import each other. They exchange the shapes in `contracts/README.md`;
-   only `l10n_sense/cli.py` composes them.
+1. Services never import each other. They exchange the shapes in `contracts/README.md`.
+   `l10n_sense/cli.py` composes them; `score` and `review` start the two model services as
+   subprocesses, which is the contract of those services.
 2. No hosted model API and no API key. Model calls go through `services/llm` (Claude Code CLI)
    or `services/llm_codex` (Codex CLI) and nothing else.
 3. Both CLIs run with every acting tool off, from an empty directory. Do not loosen those
-   flags; `services/llm_codex/eval_isolation.py` must keep passing.
-4. Strings and code under review are untrusted. Everything printed goes through the
-   control-character stripping in `services/check`; only files under `--src` are read and
-   symlinks are not followed.
+   flags. `services/llm_codex/eval_isolation.py` checks the Codex service with a canary file and
+   must keep passing; the Claude service's flags are pinned by `services/llm/tests`.
+4. Strings and code under review are untrusted. Text output and messages on stderr go through
+   `check_lib.clean`; JSON output goes through `cli.json_text`, which writes control and
+   direction characters as escapes. Only files under `--src` are read and symlinks are not followed.
 5. The default score cache stays outside the project and every cached entry is validated
    before use.
-6. The gate makes no model call and no network request, and stays near 1 s.
+6. The gate makes no model call and no network request, and stays under 1 s.
 7. A string a scorer could not rate is reported with a null score and counted in
    `meta.unscored`. It is never passed as scored.
 8. Rules stay conservative: a rule that fires on brand names or one-word labels is a bug.
 9. Report format changes bump `version` and update `contracts/README.md` in the same commit.
 10. A runtime service added to the wheel needs its `force-include` line in `pyproject.toml`;
-    `scripts/e2e.sh` is what catches a missing one.
+    `scripts/e2e.sh` checks that every `force-include` target is in the installed package.
 11. No runtime dependency is added without a decision recorded in `DECISIONS.md`.
 12. Benchmark data from other projects keeps its licence text and notice in `data/bench/`.
 13. The ship gate (precision at least 0.9 at recall at least 0.7 on the known-truth set) is not

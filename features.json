@@ -3,7 +3,7 @@
   "features": [
     {
       "id": "rules-without-model",
-      "behavior": "`check --no-model` reports placeholder mismatches, empty and missing translations, key names used as translations and text left untranslated, with the same result every time.",
+      "behavior": "The rules report placeholder mismatches, empty and missing translations, key names used as translations and text left untranslated, with the same result every time.",
       "verify": "uv run --quiet --with pytest --with pyyaml pytest -q services/rules/tests",
       "state": "passing"
     },

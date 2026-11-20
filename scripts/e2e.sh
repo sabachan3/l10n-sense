@@ -11,6 +11,21 @@ uv build --quiet --wheel --out-dir "$work/dist"
 uv venv --quiet "$work/venv"
 uv pip install --quiet --python "$work/venv/bin/python" "$work"/dist/*.whl
 cli="$work/venv/bin/l10n-sense"
+# Every force-include target must be in the installed package. The model services are started
+# by path only on a model-scored run, so nothing below would notice one missing.
+"$work/venv/bin/python" -I - "$PWD/pyproject.toml" <<'PY' || { echo "e2e FAIL: a force-include target is missing from the installed package" >&2; exit 1; }
+import importlib.util, re, sys
+from pathlib import Path
+targets = set(re.findall(r'^"services/[^"]+" = "(l10n_sense/_services/[^"]+)"$', Path(sys.argv[1]).read_text(encoding="utf-8"), re.M))
+root = Path(importlib.util.find_spec("l10n_sense").origin).parent.parent   # -I: the installed copy, not the repository
+missing = sorted(target for target in targets if not (root / target).is_file())
+expected = {"l10n_sense/_services/llm/llm.py", "l10n_sense/_services/llm_codex/codex.py"}
+missing += sorted(f"{target} (not listed in force-include)" for target in expected - targets)
+if len(targets) < 7:
+    missing.append(f"only {len(targets)} force-include lines were read from pyproject.toml, expected at least 7")
+print("\n".join(missing), file=sys.stderr, end="\n" if missing else "")
+sys.exit(1 if missing else 0)
+PY
 fixtures="$PWD/tests/e2e"
 cd "$work"   # away from the repository, so only the installed package can be imported
 

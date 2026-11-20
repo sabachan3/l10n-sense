@@ -114,7 +114,7 @@ language that does not use it.
 
 ```bash
 scripts/setup.sh                      # once: commit hook, environment, gate
-scripts/test.sh                       # gate tests: about 1 s, no model, also the pre-commit hook
+scripts/test.sh                       # gate tests: under 1 s, no model, also the pre-commit hook
 scripts/e2e.sh                        # builds the wheel, installs it, runs it on tests/e2e (rules only)
 scripts/eval.sh                       # periodic eval: real model on the known-truth benchmark
 scripts/eval.sh codex                 # plus the Codex isolation check and the Codex scorer

@@ -6,9 +6,11 @@ Updated at the end of every working session. Newest state on top.
 
 - Version 0.1.0, public on GitHub, not on PyPI. Installs from the repository URL.
 - Gate: `scripts/test.sh` green. End to end: `scripts/e2e.sh` green (installed wheel, rules only).
-- All items in `features.json` are verified by their commands.
-- `scripts/eval.sh` run on 2026-11-20 (Claude scorer, known-truth benchmark): precision 0.982,
-  recall 1.000, 1 false alarm, 276 of 276 strings scored. Ship gate met. One run.
+- All eight items in `features.json` have a recorded passing run of their command on this machine
+  (`agent-sense features`; the record is local, a fresh clone starts without one).
+- `scripts/eval.sh` (Claude scorer, known-truth benchmark, 276 strings): three runs so far, precision
+  0.982 to 1.000, recall 0.964 to 1.000, 0 or 1 false alarm. Ship gate met each time. Table in
+  `docs/results.md`.
 
 ## Completed
 
@@ -21,6 +23,11 @@ Updated at the end of every working session. Newest state on top.
   YAML, gettext, Android, iOS and Xcode readers; upstream licence text for the benchmark data.
 - 2026-11-20: agent harness: `CLAUDE.md`, this file, `DECISIONS.md`, `features.json`,
   `scripts/setup.sh`, `scripts/e2e.sh`, evaluator subagent, optional agent-sense Stop hook.
+
+- 2026-11-20: corrections after an independent review of the harness change. Scorer error text
+  and file errors on stderr are cleaned, JSON output writes control and direction characters as
+  escapes (`cli.json_text`), `scripts/e2e.sh` checks that every `force-include` target is in the
+  installed package, and statements in `CLAUDE.md` and `DECISIONS.md` were corrected.
 
 ## In Progress
 

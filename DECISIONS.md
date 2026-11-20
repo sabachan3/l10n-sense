@@ -7,15 +7,17 @@ One entry per decision that a later change could undo by accident. Newest first.
 - **Decision:** `scripts/e2e.sh` builds the wheel, installs it in a throwaway environment and
   compares the report for `tests/e2e/` with `tests/e2e/expected.json`. It is not part of the gate.
 - **Reason:** unit tests import from the working tree, so a service missing from the wheel's
-  `force-include` list would pass them and break every installed copy.
+  `force-include` list would pass them and break installed copies. The five services imported at
+  start-up fail the run directly; the two model services are only started on a model-scored run,
+  so the script also checks that every `force-include` target exists in the installed package.
 - **Rejected:** putting it in the gate (needs a build and the network, takes seconds, the gate
-  is about 1 s); covering model scoring here (not deterministic, costs calls; `scripts/eval.sh` does it).
+  is under 1 s); covering model scoring here (not deterministic, costs calls; `scripts/eval.sh` does it).
 
 ## 2026-11-19: the package is named l10n-sense
 
 - **Decision:** distribution and command are `l10n-sense`.
-- **Reason:** the tool judges sense in context; "lint" suggests the structural checks other
-  tools already do.
+- **Reason:** `l10n-lint` is already another project on PyPI (`docs/results.md`). "sense" was
+  chosen because the tool judges sense in context.
 - **Rejected:** keeping the working name `l10n-lint`.
 
 ## 2026-11-19: runtime services ship inside the package through force-include
@@ -42,8 +44,9 @@ One entry per decision that a later change could undo by accident. Newest first.
 
 ## 2026-11-19: model CLIs run with every acting tool off, from an empty directory
 
-- **Decision:** `services/llm` and `services/llm_codex` disable shell, file and network tools,
-  and `services/llm_codex/eval_isolation.py` checks it with a canary file.
+- **Decision:** `services/llm` and `services/llm_codex` disable shell, file and network tools.
+  `services/llm_codex/eval_isolation.py` checks the Codex service with a canary file; the Claude
+  service's flags are pinned by unit tests on its command line.
 - **Reason:** the strings and code under review are untrusted and reach the model; the Codex CLI
   could read local files with its defaults.
 - **Rejected:** relying on the prompt to tell the model not to act.

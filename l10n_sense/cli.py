@@ -17,6 +17,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -39,6 +40,18 @@ SOURCE_SUFFIXES = (".ts", ".tsx", ".js", ".jsx", ".mjs", ".vue", ".svelte", ".as
                    ".php", ".go", ".swift", ".kt", ".java", ".dart", ".xml")
 SKIP_DIRS = {"node_modules", ".git", "dist", "build", ".next", "coverage", "__tests__", "vendor", "Pods", ".venv"}
 MAX_SOURCE_BYTES = 1_000_000
+
+
+# json.dumps escapes the C0 controls itself. With ensure_ascii off it leaves DEL, the C1 controls
+# (0x9b starts an escape sequence on some terminals) and the direction overrides as they are.
+_JSON_UNSAFE = re.compile("[" + "".join(f"{chr(first)}-{chr(last)}" for first, last in (
+    (0x7F, 0x9F), (0x2028, 0x2029), (0x202A, 0x202E), (0x2066, 0x2069))) + "]")
+
+
+def json_text(report: dict) -> str:
+    """The report as JSON that is safe to print: same data, risky characters written as escapes."""
+    text = json.dumps(report, ensure_ascii=False, indent=1)
+    return _JSON_UNSAFE.sub(lambda match: f"\\u{ord(match.group()):04x}", text)
 
 
 def default_cache_path(project: Path) -> Path:
@@ -121,7 +134,7 @@ def score_strings(pair: dict, language: str, files: dict, service: str, model: s
     for _, _, key in jobs:
         out.update(cache.get(key, {}))
     if errors:
-        log(f"[l10n-sense] {len(errors)} groups could not be scored and are reported without a score, first: {errors[0][:200]}")
+        log(f"[l10n-sense] {len(errors)} groups could not be scored and are reported without a score, first: {check_lib.clean(errors[0][:200])}")
     return out
 
 
@@ -184,12 +197,12 @@ def main(argv: list[str] | None = None, call=call_service) -> int:
     try:
         report, code = check(args, call=call, log=lambda message: print(message, file=sys.stderr, flush=True))
     except (formats_lib.FormatError, OSError, ValueError) as exc:
-        print(f"l10n-sense: {exc}", file=sys.stderr)
+        print(f"l10n-sense: {check_lib.clean(exc)}", file=sys.stderr)
         return 2
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(json.dumps(report, ensure_ascii=False, indent=1) if args.format == "json" else check_lib.format_text(report))
+    print(json_text(report) if args.format == "json" else check_lib.format_text(report))
     return code
 
 

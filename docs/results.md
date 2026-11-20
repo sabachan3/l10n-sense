@@ -144,3 +144,24 @@ result above from cache, and scored a three-string Android project live: Charge 
 
 Formats added: YAML, gettext, Android, iOS `.strings`, Xcode `.xcstrings`, Chrome messages, ARB.
 Each has parser tests; only JSON has benchmark numbers.
+
+## 2026-11-20: ship gate reruns, end-to-end check
+
+`scripts/eval.sh` (Claude scorer, known-truth benchmark, 276 strings, prompt version 2) was run
+twice more. With the 2026-11-19 run that makes three runs of the same benchmark:
+
+| run | precision | recall | false alarms | scored |
+|---|---:|---:|---:|---:|
+| 2026-11-19 | 1.000 | 0.964 | 0 | 276/276 |
+| 2026-11-20, first | 0.982 | 1.000 | 1 | 276/276 |
+| 2026-11-20, second | 0.982 | 0.964 | 1 | 276/276 |
+
+All three meet the ship gate (precision at least 0.9, recall at least 0.7). The runs differ by one
+false alarm and by two missed errors, so differences of that size between two single runs are
+noise, not a change in the scorer. The raw scores are under `runs/`, which is not in git; only
+the last run's file is kept there.
+
+`scripts/e2e.sh` (new): the built wheel, installed in an empty environment, finds the five
+planted problems in `tests/e2e/` with exit 1, passes the clean file, exits 2 on an unreadable
+file, and contains every `force-include` target. Rules only; no model-scored run of the
+installed wheel is automated.
