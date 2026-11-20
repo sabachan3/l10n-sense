@@ -40,10 +40,8 @@ scripts/eval.sh codex  # plus the Codex isolation check and the Codex scorer; al
 ```
 
 `agent-sense` is the author's own unpublished tool and is optional: when the command is absent,
-skip every step that names it. `agent-sense features --run --only <id>` runs one verify command
-of `features.json`. Do not run plain `features --run` here unless `agent-sense features --help`
-mentions `manual`: older versions run every command, including `scorer-ship-gate`, which is marked
-`"manual": true` because it makes model calls. The record of runs is local, under `.git/agent-sense/`.
+skip every step that names it. `agent-sense features --run` runs every verify command except those marked `"manual": true`;
+`scorer-ship-gate` is marked so because it makes model calls (`--only scorer-ship-gate` runs it). The record of runs is local, under `.git/agent-sense/`.
 
 ## Done means
 
