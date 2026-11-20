@@ -237,6 +237,9 @@ def main(argv: list[str] | None = None, call=call_service) -> int:
     args = parser.parse_args(argv)
     if args.window < 1 or args.workers < 1:
         parser.error("--window and --workers must be 1 or more")
+    if args.out and any(path and Path(path).exists() and args.out.exists() and args.out.samefile(path)
+                        for path in (args.source, args.target)):
+        parser.error("--out is one of the locale files: the report would overwrite it")
     if args.second and args.second == args.scorer and args.second_model == args.model:
         parser.error("--second must differ from --scorer: the same model twice is not an independent opinion")
 

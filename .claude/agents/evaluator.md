@@ -37,5 +37,17 @@ Answer in this form:
     Failures: <file:line, what is wrong, how you saw it>   (empty when PASS)
     Not checked: <what you could not verify and why>
 
-FAIL when any command fails, a check was weakened without a stated and sound reason, a hard
-constraint is broken, or a claim has no evidence. When unsure, FAIL and say what evidence is missing.
+## Verdict
+
+Class every finding:
+
+- **A**: a defect a user of the tool can hit in normal or mistaken use (wrong verdict, wrong exit
+  code, a traceback, lost output, an unsafe character on a terminal), or a statement in a
+  document that is false.
+- **B**: wording, a missing test, or a documentation gap that misleads nobody about behaviour.
+- **C**: theoretical or hostile input that no ordinary use produces.
+
+FAIL when at least one class A finding exists, a required command fails, a check was weakened
+without a stated and sound reason, or a hard constraint is broken. Otherwise PASS, with the B
+and C findings listed under their class. A finding already recorded under Known Issues in
+`PROGRESS.md` is not class A. When unsure whether something is A or B, say what evidence would decide it.

@@ -27,16 +27,18 @@ Measurements and their limits: [docs/results.md](docs/results.md).
 
 ## Install
 
+Python 3.10 or newer, no other dependencies. Not on PyPI yet, so install from the repository:
+
 ```bash
-uvx l10n-sense --help            # run without installing (needs uv)
-pipx install l10n-sense          # or install the command
-pip install "l10n-sense[yaml]"   # YAML locale files need PyYAML
+uvx --from git+https://github.com/sabachan3/l10n-sense l10n-sense --help   # needs uv
 ```
 
-Python 3.10 or newer, no other dependencies. Not on PyPI yet; until then:
+Once it is published these will work; today they do not:
 
 ```bash
-uvx --from git+https://github.com/sabachan3/l10n-sense l10n-sense --help
+uvx l10n-sense --help            # run without installing
+pipx install l10n-sense          # or install the command
+pip install "l10n-sense[yaml]"   # YAML locale files need PyYAML
 ```
 
 ## Use
@@ -60,7 +62,7 @@ l10n-sense check ... --second codex
 | `ok` | nothing found | 0 |
 
 `--warn`, `--fail` and `--fail-on` change the thresholds and what breaks a build. `--format json`
-or `--out report.json` gives the full report. Exit code 2 means the command could not do its job: a file could not be read, parsed or written, or the options were wrong.
+or `--out report.json` gives the full report. Exit code 2 means the command could not do its job: a file could not be read, parsed or written, or the options were wrong (`--out` naming one of the locale files is refused).
 A workflow to copy: [docs/github-actions.yml](docs/github-actions.yml).
 
 ### Locale file formats
@@ -114,7 +116,7 @@ language that does not use it.
 
 ```bash
 scripts/setup.sh                      # once: commit hook, environment, gate
-scripts/test.sh                       # gate tests: under 1 s, no model, also the pre-commit hook
+scripts/test.sh                       # gate tests: no model, also the pre-commit hook and the CI gate
 scripts/e2e.sh                        # builds the wheel, installs it, runs it on tests/e2e (rules only)
 scripts/eval.sh                       # periodic eval: real model on the known-truth benchmark
 scripts/eval.sh codex                 # plus the Codex isolation check and the Codex scorer

@@ -347,3 +347,14 @@ def test_interrupt_exits_130_with_one_line(tmp_path, capsys):
                            "--lang", "ja", "--cache", str(root / "cache.json"), "--workers", "1"], call=interrupted)
     err = capsys.readouterr().err
     assert code == 130 and "interrupted" in err and "Traceback" not in err
+
+
+def test_out_pointing_at_a_locale_file_is_refused(tmp_path):
+    root = project(tmp_path)
+    before = (root / "locales/ja.json").read_bytes()
+    for victim in ("locales/ja.json", "locales/en.json"):
+        with pytest.raises(SystemExit) as exit_info:
+            l10n_lint.main(["check", "--source", str(root / "locales/en.json"), "--target", str(root / "locales/ja.json"),
+                            "--lang", "ja", "--no-model", "--out", str(root / victim)])
+        assert exit_info.value.code == 2
+    assert (root / "locales/ja.json").read_bytes() == before

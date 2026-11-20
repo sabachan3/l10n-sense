@@ -1,0 +1,53 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    # Deterministic tests only: no job in this workflow calls a model.
+    name: gate ${{ matrix.os }} py${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.12"]
+        include:
+          - { os: ubuntu-latest, python: "3.10" }
+          - { os: windows-latest, python: "3.10" }
+          - { os: ubuntu-latest, python: "3.13" }
+    env:
+      UV_PYTHON: ${{ matrix.python }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: interpreter the gate will use
+        shell: bash
+        run: uv run --quiet --with-requirements requirements-gate.txt python -c "import sys; print(sys.version); assert sys.version.startswith('${{ matrix.python }}.'), sys.version"
+      - name: gate tests
+        shell: bash
+        run: scripts/test.sh
+
+  package:
+    name: build, install, run the installed command
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      UV_PYTHON: "3.12"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: end-to-end check of the installed wheel (rules only)
+        run: scripts/e2e.sh
