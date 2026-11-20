@@ -110,14 +110,14 @@ def test_ios_strings_with_comments_and_escapes():
 
 
 def test_load_pair_by_file_type(tmp_path):
-    (tmp_path / "en.json").write_text('{"a": "Save"}')
+    (tmp_path / "en.json").write_text('{"a": "Save"}', encoding="utf-8")
     (tmp_path / "ja.json").write_text('{"a": "保存"}', encoding="utf-8")
     pair = formats_lib.load_pair(tmp_path / "en.json", tmp_path / "ja.json", "ja")
     assert pair["source"] == {"a": "Save"} and pair["target"] == {"a": "保存"}
     (tmp_path / "ja.po").write_text(PO, encoding="utf-8")
     assert formats_lib.load_pair(None, tmp_path / "ja.po", "ja")["target"]["KvK draw"] == "KvK引き分け"
     (tmp_path / "ja.strings").write_bytes('"a" = "保存";'.encode("utf-16"))
-    (tmp_path / "en.strings").write_text('"a" = "Save";')
+    (tmp_path / "en.strings").write_text('"a" = "Save";', encoding="utf-8")
     assert formats_lib.load_pair(tmp_path / "en.strings", tmp_path / "ja.strings", "ja")["target"] == {"a": "保存"}
     with pytest.raises(formats_lib.FormatError):
         formats_lib.load_pair(None, tmp_path / "ja.json", "ja")

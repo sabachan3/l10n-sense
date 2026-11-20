@@ -39,6 +39,10 @@ Updated at the end of every working session. Newest state on top.
   `--window` or `--workers` below 1 exit 2. The cache is checked for writability before any
   model call, and a cache that cannot be saved no longer loses the report. Output to a stdout
   that is not UTF-8 is escaped instead of crashing. Ctrl-C exits 130 with one line.
+- 2026-11-20: checked on a real Windows 11 machine. Gate 124 passed after the test fixtures got an
+  explicit encoding; source file names in the prompt and cache key use forward slashes on every
+  system; redirected output with characters outside code page 932 works where the previous
+  version crashed. Details in `docs/results.md`.
 
 ## In Progress
 

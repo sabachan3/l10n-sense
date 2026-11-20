@@ -121,7 +121,7 @@ def read_sources(root: Path | None) -> dict[str, str]:
             continue
         if path.stat().st_size > MAX_SOURCE_BYTES:
             continue
-        files[str(path.relative_to(root.parent))] = path.read_text(encoding="utf-8", errors="replace")
+        files[path.relative_to(root.parent).as_posix()] = path.read_text(encoding="utf-8", errors="replace")
     return files
 
 

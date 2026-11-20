@@ -165,3 +165,18 @@ the last run's file is kept there.
 planted problems in `tests/e2e/` with exit 1, passes the clean file, exits 2 on an unreadable
 file, and contains every `force-include` target. Rules only; no model-scored run of the
 installed wheel is automated.
+
+## 2026-11-20: Windows, real machine
+
+Windows 11 build 26200, Python 3.10, code page 932, checked by hand over a remote shell.
+
+- Gate tests: 124 passed. Before this date 16 failed there, 15 of them because the tests wrote
+  their fixture files in the platform encoding, and one for a real difference: source file
+  names sent to the scorer used backslashes on Windows, so the prompt and the cache key differed
+  from other systems. Names are now written with forward slashes everywhere.
+- Redirected output, rules only (`--no-model`), a locale file holding a kanji outside the code
+  page (U+20BB7) and a joined emoji, with `> file`, in both formats. The previous version wrote
+  nothing and ended in `UnicodeEncodeError: 'cp932' codec can't encode character` with exit 1.
+  This version writes the report and exits 1 for the two rule findings; the JSON, read back as
+  code page 932, parses and holds the same strings as escapes. One file pair, one machine.
+- Not run on Windows: a model-scored run, `scripts/e2e.sh` (a bash script) and `scripts/eval.sh`.

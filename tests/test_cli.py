@@ -17,10 +17,10 @@ def project(tmp_path):
     (tmp_path / "locales").mkdir()
     (tmp_path / "src").mkdir()
     (tmp_path / "locales/en.json").write_text(json.dumps({"kvk": {"draw": "KvK draw", "round": "Round {n}", "seed": "Seed"},
-                                                          "nav": {"flowSpawn": "Start the flow"}}))
+                                                          "nav": {"flowSpawn": "Start the flow"}}), encoding="utf-8")
     (tmp_path / "locales/ja.json").write_text(json.dumps({"kvk": {"draw": "KvK引き分け", "round": "ラウンド", "seed": "シード"},
-                                                          "nav": {"flowSpawn": "Flow Spawn"}}, ensure_ascii=False))
-    (tmp_path / "src/Bracket.tsx").write_text('const t = useTranslations("kvk");\nconst pairs = usePairings();\n<h2>{t("draw")}</h2>\n')
+                                                          "nav": {"flowSpawn": "Flow Spawn"}}, ensure_ascii=False), encoding="utf-8")
+    (tmp_path / "src/Bracket.tsx").write_text('const t = useTranslations("kvk");\nconst pairs = usePairings();\n<h2>{t("draw")}</h2>\n', encoding="utf-8")
     return tmp_path
 
 
@@ -90,7 +90,7 @@ def test_a_scorer_that_fails_leaves_strings_unscored_but_rules_still_report(tmp_
 def test_symlinked_and_outside_files_are_never_read(tmp_path):
     root = project(tmp_path)
     secret = tmp_path / "secret.ts"
-    secret.write_text('const key = "TOP-SECRET";')
+    secret.write_text('const key = "TOP-SECRET";', encoding="utf-8")
     (root / "src" / "link.ts").symlink_to(secret)
     files = l10n_lint.read_sources(root / "src")
     assert list(files) == ["src/Bracket.tsx"] and "TOP-SECRET" not in "".join(files.values())
@@ -104,7 +104,7 @@ def test_a_planted_cache_cannot_pass_a_wrong_string(tmp_path):
     for entry in cache.values():       # an attacker rewrites every cached score to "fine" with a bogus shape
         for value in entry.values():
             value["score"] = -1
-    cache_path.write_text(json.dumps(cache))
+    cache_path.write_text(json.dumps(cache), encoding="utf-8")
     calls = len(scorer.prompts)
     report, code = run(tmp_path, scorer)
     assert len(scorer.prompts) > calls and verdicts(report)["kvk.draw"] == "fail" and code == 1
@@ -119,7 +119,7 @@ def test_default_cache_lives_outside_the_project(tmp_path, monkeypatch):
 
 def test_gettext_file_needs_no_source_and_uses_its_references(tmp_path):
     (tmp_path / "src").mkdir()
-    (tmp_path / "src/draw.py").write_text("pairs = draw_bracket(kingdoms)\ntitle = _('KvK draw')\n")
+    (tmp_path / "src/draw.py").write_text("pairs = draw_bracket(kingdoms)\ntitle = _('KvK draw')\n", encoding="utf-8")
     (tmp_path / "ja.po").write_text('#. Bracket draw page title\n#: src/draw.py:2\nmsgid "KvK draw"\nmsgstr "KvK引き分け"\n\n'
                                     'msgid "Hello %(name)s"\nmsgstr "こんにちは"\n', encoding="utf-8")
     scorer = FakeScorer({"claude": {"KvK draw": 95}})
@@ -132,7 +132,7 @@ def test_gettext_file_needs_no_source_and_uses_its_references(tmp_path):
 
 
 def test_unsupported_file_type_is_a_clean_error(tmp_path, capsys):
-    (tmp_path / "ja.csv").write_text("a,b")
+    (tmp_path / "ja.csv").write_text("a,b", encoding="utf-8")
     assert l10n_lint.main(["check", "--target", str(tmp_path / "ja.csv"), "--lang", "ja", "--no-model"]) == 2
     assert "unsupported locale file type" in capsys.readouterr().err
 
