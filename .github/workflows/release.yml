@@ -1,0 +1,121 @@
+name: release
+
+# Builds the sdist and the wheel, checks them, and uploads them to PyPI with trusted publishing
+# (OIDC): no token or password is stored anywhere. Steps for the owner: docs/release.md.
+#
+# Starts only when a GitHub release is published, or by hand. A push never starts it.
+# Started by hand it uploads nowhere unless `target` says so.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Upload to: nowhere (build and check only), testpypi, or pypi"
+        type: choice
+        options: [nowhere, testpypi, pypi]
+        default: nowhere
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    # The same matrix as ci.yml (tests/test_release.py compares them). No job here calls a model.
+    name: gate ${{ matrix.os }} py${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.12"]
+        include:
+          - { os: ubuntu-latest, python: "3.10" }
+          - { os: ubuntu-latest, python: "3.11" }
+          - { os: windows-latest, python: "3.10" }
+          - { os: ubuntu-latest, python: "3.13" }
+          - { os: ubuntu-latest, python: "3.14" }
+    env:
+      UV_PYTHON: ${{ matrix.python }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - name: gate tests
+        shell: bash
+        run: scripts/test.sh
+
+  build:
+    name: build and check the sdist and the wheel
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      UV_PYTHON: "3.12"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - name: the release tag is v plus the version in pyproject.toml
+        if: github.event_name == 'release'
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version="$(sed -n 's/^version = "\(.*\)"$/\1/p' pyproject.toml)"
+          [ "$TAG" = "v$version" ] || { echo "::error::release tag $TAG, but pyproject.toml says $version (expected tag v$version)"; exit 1; }
+      - name: build
+        run: uv build --out-dir dist
+      - name: twine check, contents, install from each, run the installed command
+        run: scripts/e2e.sh dist
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: dist
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: upload to PyPI
+    if: github.event_name == 'release' || inputs.target == 'pypi'
+    needs: [gate, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/project/l10n-sense/
+    permissions:
+      id-token: write   # trusted publishing; this job runs no code from the repository
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+
+  publish-testpypi:
+    name: upload to TestPyPI (rehearsal)
+    if: github.event_name == 'workflow_dispatch' && inputs.target == 'testpypi'
+    needs: [gate, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/l10n-sense/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+        with:
+          repository-url: https://test.pypi.org/legacy/

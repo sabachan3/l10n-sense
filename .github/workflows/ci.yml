@@ -13,6 +13,10 @@ concurrency:
 permissions:
   contents: read
 
+# Actions are pinned to a full commit; the comment names the release that commit is. To move one:
+#   gh api repos/OWNER/REPO/git/ref/tags/vX.Y.Z   (an annotated tag needs a second look-up of its object)
+# tests/test_release.py fails on a `uses:` line that is not in this form.
+
 jobs:
   gate:
     # Deterministic tests only: no job in this workflow calls a model.
@@ -26,13 +30,17 @@ jobs:
         python: ["3.12"]
         include:
           - { os: ubuntu-latest, python: "3.10" }
+          - { os: ubuntu-latest, python: "3.11" }
           - { os: windows-latest, python: "3.10" }
           - { os: ubuntu-latest, python: "3.13" }
+          - { os: ubuntu-latest, python: "3.14" }
     env:
       UV_PYTHON: ${{ matrix.python }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
       - name: interpreter the gate will use
         shell: bash
         run: uv run --quiet --with-requirements requirements-gate.txt python -c "import sys; print(sys.version); assert sys.version.startswith('${{ matrix.python }}.'), sys.version"
@@ -41,13 +49,15 @@ jobs:
         run: scripts/test.sh
 
   package:
-    name: build, install, run the installed command
+    name: build, check and install the sdist and the wheel, run the installed command
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
       UV_PYTHON: "3.12"
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
-      - name: end-to-end check of the installed wheel (rules only)
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - name: end-to-end check of the sdist and the wheel (rules only)
         run: scripts/e2e.sh
