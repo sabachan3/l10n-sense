@@ -5,7 +5,7 @@ Updated at the end of every working session. Newest state on top.
 ## Current State (2026-11-20)
 
 - Version 0.1.0, public on GitHub, not on PyPI. Installs from the repository URL.
-- Gate: `scripts/test.sh` green, 125 tests, also in CI on Linux, macOS and Windows. End to end:
+- Gate: `scripts/test.sh` green, 129 tests, also in CI on Linux, macOS and Windows. End to end:
   `scripts/e2e.sh` green (installed wheel, rules only).
 - All eight items in `features.json` have a recorded passing run on the author's machine (the
   record is local, under `.git/agent-sense/`; a fresh clone starts without one).
@@ -23,6 +23,12 @@ History is in `git log` and, for measurements, in `docs/results.md`. In short:
   end-to-end scripts, evaluator definition); three independent reviews and the fixes they led to
   (output cleaning and escaping, exit codes, two-scorer verdict, unscored count); a check on a
   real Windows machine; CI on Linux, macOS and Windows; pinned gate dependencies.
+- 2026-11-22: independent review of everything since the second review (3095bbf..5187c87): PASS,
+  no class A finding; gate, end-to-end check and hostile inputs rerun by the reviewer, model
+  evals not run. Fixed from its notes: `--cache` naming a locale file overwrote that file (now
+  refused, as `--out` already was), a wrong-shape source file was reported under the target's
+  name, the interrupt message mentioned a cache in a run without a model. Those fixes are not
+  reviewed.
 
 ## In Progress
 

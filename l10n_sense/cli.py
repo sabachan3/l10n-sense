@@ -237,9 +237,15 @@ def main(argv: list[str] | None = None, call=call_service) -> int:
     args = parser.parse_args(argv)
     if args.window < 1 or args.workers < 1:
         parser.error("--window and --workers must be 1 or more")
-    if args.out and any(path and Path(path).exists() and args.out.exists() and args.out.samefile(path)
-                        for path in (args.source, args.target)):
+    def same(first: Path | None, second: Path | None) -> bool:
+        return bool(first and second and Path(first).exists() and Path(second).exists() and Path(first).samefile(second))
+
+    if any(same(args.out, path) for path in (args.source, args.target)):
         parser.error("--out is one of the locale files: the report would overwrite it")
+    if any(same(args.cache, path) for path in (args.source, args.target)):
+        parser.error("--cache is one of the locale files: the score cache would overwrite it")
+    if same(args.cache, args.out):
+        parser.error("--cache and --out are the same file")
     if args.second and args.second == args.scorer and args.second_model == args.model:
         parser.error("--second must differ from --scorer: the same model twice is not an independent opinion")
 
@@ -252,7 +258,8 @@ def main(argv: list[str] | None = None, call=call_service) -> int:
         print(f"l10n-sense: {check_lib.clean(exc)}", file=sys.stderr)
         return 2
     except KeyboardInterrupt:
-        print("l10n-sense: interrupted; scores received so far are in the cache", file=sys.stderr)
+        kept = "" if args.no_model else "; scores received before this are kept in the score cache"
+        print(f"l10n-sense: interrupted{kept}", file=sys.stderr)
         return 130
     write_out(json_text(report, ascii_only=not utf8(sys.stdout)) if args.format == "json" else check_lib.format_text(report))
     return code

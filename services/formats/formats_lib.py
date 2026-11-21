@@ -238,7 +238,8 @@ def load_pair(source_path: Path | None, target_path: Path, language: str) -> dic
     try:
         return _load_pair(source_path, target_path, language)
     except (AttributeError, TypeError, KeyError, IndexError, RecursionError) as exc:
-        raise FormatError(f"{Path(target_path).name} is not in the shape a locale file of its kind has "
+        names = " or ".join(Path(path).name for path in (source_path, target_path) if path)   # which of the two is not known here
+        raise FormatError(f"{names} is not in the shape a locale file of its kind has "
                           f"({type(exc).__name__})") from exc
 
 

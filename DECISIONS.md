@@ -2,6 +2,14 @@
 
 One entry per decision that a later change could undo by accident. Newest first.
 
+## 2026-11-22: `meta.unscored` counts a string missing either scorer; no version bump
+
+- Decision: with `--second`, `meta.unscored` counts every string that lacks a score from either
+  scorer. The report's `version` stays as it is.
+- Why: the field's name and type did not change, and the old count (first scorer only) hid
+  strings whose verdict rested on one opinion. The contract text was corrected in the same commit.
+- Rejected: a version bump (no reader has to change); a second field (two numbers for one question).
+
 ## 2026-11-20: end-to-end check runs the installed wheel, rules only
 
 - **Decision:** `scripts/e2e.sh` builds the wheel, installs it in a throwaway environment and

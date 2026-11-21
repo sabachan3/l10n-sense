@@ -62,7 +62,7 @@ l10n-sense check ... --second codex
 | `ok` | nothing found | 0 |
 
 `--warn`, `--fail` and `--fail-on` change the thresholds and what breaks a build. `--format json`
-or `--out report.json` gives the full report. Exit code 2 means the command could not do its job: a file could not be read, parsed or written, or the options were wrong (`--out` naming one of the locale files is refused).
+or `--out report.json` gives the full report. Exit code 2 means the command could not do its job: a file could not be read, parsed or written, or the options were wrong (`--out` or `--cache` naming one of the locale files is refused).
 A workflow to copy: [docs/github-actions.yml](docs/github-actions.yml).
 
 ### Locale file formats

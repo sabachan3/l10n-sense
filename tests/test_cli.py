@@ -358,3 +358,54 @@ def test_out_pointing_at_a_locale_file_is_refused(tmp_path):
                             "--lang", "ja", "--no-model", "--out", str(root / victim)])
         assert exit_info.value.code == 2
     assert (root / "locales/ja.json").read_bytes() == before
+
+
+def test_cache_pointing_at_a_locale_file_or_at_the_report_is_refused(tmp_path, capsys):
+    root = project(tmp_path)
+    before = {name: (root / name).read_bytes() for name in ("locales/ja.json", "locales/en.json")}
+    base = ["check", "--source", str(root / "locales/en.json"), "--target", str(root / "locales/ja.json"), "--lang", "ja"]
+    called = []
+    for extra, message in ((["--cache", str(root / "locales/ja.json")], "--cache is one of the locale files"),
+                           (["--cache", str(root / "locales/en.json")], "--cache is one of the locale files")):
+        with pytest.raises(SystemExit) as exit_info:
+            l10n_lint.main(base + extra, call=lambda *args: called.append(args))
+        assert exit_info.value.code == 2 and message in capsys.readouterr().err
+    (root / "both.json").write_text("{}", encoding="utf-8")
+    with pytest.raises(SystemExit) as exit_info:
+        l10n_lint.main(base + ["--cache", str(root / "both.json"), "--out", str(root / "both.json")], call=lambda *args: called.append(args))
+    assert exit_info.value.code == 2 and "same file" in capsys.readouterr().err
+    assert called == [] and {name: (root / name).read_bytes() for name in before} == before     # no model call, both files untouched
+
+
+def test_interrupt_without_a_model_does_not_mention_a_cache(tmp_path, capsys, monkeypatch):
+    def interrupted(*args, **kwargs):
+        raise KeyboardInterrupt
+
+    root = project(tmp_path)
+    monkeypatch.setattr(l10n_lint, "check", interrupted)
+    code = l10n_lint.main(["check", "--source", str(root / "locales/en.json"), "--target", str(root / "locales/ja.json"),
+                           "--lang", "ja", "--no-model"])
+    err = capsys.readouterr().err
+    assert code == 130 and err.strip() == "l10n-sense: interrupted"
+
+
+def test_a_wrong_shape_source_file_is_not_blamed_on_the_target_alone(tmp_path, capsys):
+    root = project(tmp_path)
+    (root / "locales/deep.json").write_text('{"a":' * 5000 + "1" + "}" * 5000, encoding="utf-8")       # nests deeper than the reader follows
+    code = l10n_lint.main(["check", "--source", str(root / "locales/deep.json"), "--target", str(root / "locales/ja.json"),
+                           "--lang", "ja", "--no-model"])
+    err = capsys.readouterr().err
+    assert code == 2 and "deep.json or ja.json" in err and "Traceback" not in err
+
+
+def test_one_scorer_that_answers_nothing_reports_every_string_as_unscored(tmp_path, capsys):
+    root = project(tmp_path)
+
+    def broken(service, prompt, model):
+        raise RuntimeError("scorer down")
+
+    code = l10n_lint.main(["check", "--source", str(root / "locales/en.json"), "--target", str(root / "locales/ja.json"),
+                           "--lang", "ja", "--cache", str(root / "cache.json"), "--workers", "1", "--format", "json"], call=broken)
+    report = json.loads(capsys.readouterr().out)
+    assert code in (0, 1) and report["meta"]["unscored"] > 0
+    assert report["meta"]["unscored"] == sum(1 for entry in report["strings"] if entry.get("score") is None and entry["target"].strip())
