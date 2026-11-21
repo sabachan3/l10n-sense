@@ -47,7 +47,7 @@
       "id": "release-files",
       "behavior": "One version in pyproject.toml, the package, --version and the changelog; README links are absolute; every workflow action is pinned to a commit; the release workflow cannot be started by a push and uploads only after the gate and the package check, with no stored credential.",
       "verify": "uv run --quiet --with-requirements requirements-gate.txt pytest -q tests/test_release.py",
-      "state": "active"
+      "state": "passing"
     },
     {
       "id": "scorer-ship-gate",
