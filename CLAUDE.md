@@ -27,6 +27,7 @@ Needs [uv](https://docs.astral.sh/uv/); `scripts/eval.sh` also needs `python3` (
 | `contracts/` | JSON Lines formats and the report format; the validator covers cases and findings only |
 | `tests/`, `tests/e2e/` | command-level tests; fixtures for `scripts/e2e.sh` |
 | `docs/results.md` | every measurement, with its limits |
+| `docs/release.md`, `CHANGELOG.md`, `.github/workflows/release.yml` | the owner's steps to publish; user-facing changes per version; the upload (never started by a push) |
 | `runs/` | git-ignored outputs of evals and audits; absent on a fresh clone |
 
 ## Commands
@@ -34,7 +35,7 @@ Needs [uv](https://docs.astral.sh/uv/); `scripts/eval.sh` also needs `python3` (
 ```bash
 scripts/setup.sh       # hook path, environment, gate
 scripts/test.sh        # gate: no model; also the pre-commit hook and the CI gate
-scripts/e2e.sh         # builds the wheel, installs it, runs the installed command on tests/e2e (rules only)
+scripts/e2e.sh         # builds sdist and wheel, twine check, contents against pyproject.toml, installs each, runs both on tests/e2e (rules only)
 scripts/eval.sh        # COSTS MODEL CALLS (45 cases, a few minutes). Only for prompt, scoring or CLI changes
 scripts/eval.sh codex  # plus the Codex isolation check and the Codex scorer; also model calls
 ```
@@ -58,7 +59,8 @@ skip every step that names it. `agent-sense features --run` runs every verify co
 
 ## Ask the owner first
 
-- Publishing to PyPI, a release tag, or anything that needs an account.
+- Publishing to PyPI, a release tag, a GitHub release, starting `release.yml`, or anything that
+  needs an account. The steps are the owner's and are written in `docs/release.md`.
 - Checks on Windows beyond CI: they are done by hand on a machine this repository does not describe.
 - `git remote` `old-private` (the earlier private repository) and the branch
   `backup-before-author-rewrite` (history before commit authors were changed to a no-reply
@@ -86,11 +88,13 @@ skip every step that names it. `agent-sense features --run` runs every verify co
    and counted in `meta.unscored`, and the text report says so. It is never passed as scored.
 8. Rules stay conservative: a rule that fires on brand names or one-word labels is a bug.
 9. Report format changes bump `version` and update `contracts/README.md` in the same commit.
-10. A runtime service added to the wheel needs its `force-include` line in `pyproject.toml`;
-    `scripts/e2e.sh` checks that every `force-include` target is in the installed package.
+10. A runtime service added to the wheel needs its `force-include` and its sdist `only-include` line in `pyproject.toml`;
+    `scripts/e2e.sh` fails on any file in the sdist or the wheel that those lists and `git ls-files l10n_sense` do not name.
 11. No runtime dependency is added without a decision recorded in `DECISIONS.md`.
 12. Benchmark data from other projects keeps its licence text and notice in `data/bench/`.
 13. The ship gate (precision at least 0.9 at recall at least 0.7 on the known-truth set) is not
     lowered to make a change pass.
 14. Claims in `README.md` and `docs/results.md` state what was measured, on how many items, and
     by whom judged. No native speaker has judged findings yet; do not write as if one had.
+15. One version in `pyproject.toml`, `l10n_sense/__init__.py` and the newest `CHANGELOG.md` entry; `README.md` is the PyPI page, so its links
+    are absolute; workflow actions are pinned to a full commit with the version in a comment. `tests/test_release.py` holds all three.

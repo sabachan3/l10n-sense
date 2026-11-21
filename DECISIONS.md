@@ -2,6 +2,46 @@
 
 One entry per decision that a later change could undo by accident. Newest first.
 
+## 2026-11-22: the sdist holds only what builds the wheel
+
+- **Decision:** the sdist lists its files one by one (`only-include`): the package, the seven
+  runtime service files, `README.md`, `LICENSE`, `CHANGELOG.md`, `pyproject.toml`. `scripts/e2e.sh`
+  compares both archives with those lists and fails on any other file.
+- **Reason:** the earlier rule took the whole of `services/` and `contracts/`, which put the
+  benchmark builders, a translation data file, the judging page and tests that cannot run without
+  the rest of the repository on PyPI. An exact list cannot grow by accident.
+- **Rejected:** shipping the tests in the sdist (they need `tests/`, `data/bench/` and the gate
+  requirements, so they would not run from the sdist alone; the repository is where they run);
+  a deny-list of paths (a new directory would ship until someone remembered to add it).
+
+## 2026-11-22: releases are uploaded by a workflow with trusted publishing, never from a machine
+
+- **Decision:** `.github/workflows/release.yml` uploads to PyPI through OIDC from the `pypi`
+  environment. It starts on a published GitHub release or by hand (uploading nowhere by default),
+  never on a push. It runs the gate matrix and `scripts/e2e.sh dist` on the very files it uploads.
+  A TestPyPI job exists for a rehearsal started by hand.
+- **Reason:** no token exists to leak or to rotate; the files users get are the files that were checked.
+- **Rejected:** `twine upload` or `uv publish` with an API token from the owner's machine (a
+  long-lived secret, and the upload would skip the checks unless remembered); starting on a pushed
+  tag (a tag pushed by mistake would publish; a GitHub release is a deliberate act).
+
+## 2026-11-22: workflow actions are pinned to a commit
+
+- **Decision:** every `uses:` line names a full commit, with the release it is in a comment.
+  `tests/test_release.py` fails on any other form.
+- **Reason:** a moved tag in someone else's repository would otherwise run new code with this
+  repository's permissions, in the release workflow with the right to publish.
+- **Rejected:** major-version tags (`@v4`), which is what the files had; a bot that opens update
+  requests (a repository setting, which is the owner's to change).
+
+## 2026-11-22: one version, written in three places and checked
+
+- **Decision:** the version stays a literal in `pyproject.toml` and in `l10n_sense/__init__.py`,
+  and the newest `CHANGELOG.md` entry names it; a gate test compares the three, `scripts/e2e.sh`
+  compares the installed `--version`, and the release workflow compares the tag.
+- **Rejected:** reading the version from the package at build time (`dynamic`): one place fewer
+  to edit, but `uv.lock` then stops recording it and the changelog still has to be checked.
+
 ## 2026-11-22: `meta.unscored` counts a string missing either scorer; no version bump
 
 - Decision: with `--second`, `meta.unscored` counts every string that lacks a score from either

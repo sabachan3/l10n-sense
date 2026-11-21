@@ -2,12 +2,14 @@
 
 Updated at the end of every working session. Newest state on top.
 
-## Current State (2026-11-20)
+## Current State (2026-11-22)
 
 - Version 0.1.0, public on GitHub, not on PyPI. Installs from the repository URL.
-- Gate: `scripts/test.sh` green, 129 tests, also in CI on Linux, macOS and Windows. End to end:
-  `scripts/e2e.sh` green (installed wheel, rules only).
-- All eight items in `features.json` have a recorded passing run on the author's machine (the
+- Ready for a first PyPI release; the release itself is the owner's (`docs/release.md`). The name
+  `l10n-sense` was free on PyPI on 2026-11-22 (HTTP 404 from `pypi.org/pypi/l10n-sense/json`).
+- Gate: `scripts/test.sh` green, 140 tests, also in CI on Linux, macOS and Windows. End to end:
+  `scripts/e2e.sh` green (sdist and wheel: twine check, exact contents, installed from each, rules only).
+- All nine items in `features.json` have a recorded passing run on the author's machine (the
   record is local, under `.git/agent-sense/`; a fresh clone starts without one).
 - `scripts/eval.sh` (Claude scorer, known-truth benchmark, 276 strings): three runs so far, precision
   0.982 to 1.000, recall 0.964 to 1.000, 0 or 1 false alarm. Ship gate met each time. Table in
@@ -29,10 +31,27 @@ History is in `git log` and, for measurements, in `docs/results.md`. In short:
   refused, as `--out` already was), a wrong-shape source file was reported under the target's
   name, the interrupt message mentioned a cache in a run without a model. Those fixes are not
   reviewed.
+- 2026-11-22: release preparation. Package metadata (author by name, classifiers, project
+  links, licence file); an sdist cut down to the files that build the wheel (it had carried
+  benchmark builders, a data file and the judging page); `scripts/e2e.sh` now checks both archives
+  with twine, compares their contents with `pyproject.toml` file by file and installs from each;
+  `l10n-sense --version`; `CHANGELOG.md`; README links made absolute for the PyPI page, with a
+  table of what needs a model CLI; `.github/workflows/release.yml` (trusted publishing, started
+  only by a published release or by hand); actions in both workflows pinned to commits; CI also
+  on Python 3.11 and 3.14; `docs/release.md` (publish steps, yanking, licences of dependencies
+  and data); `tests/test_release.py`. Gate run locally on Python 3.10, 3.11, 3.12, 3.13 and 3.14.
+  Audit of the tree and of the history of `main` for secrets, addresses, paths, machine and
+  project names: nothing found in what is public (details went to the owner, not into this file).
 
 ## In Progress
 
 Nothing.
+
+## Waiting on a decision
+
+- Publishing 0.1.0 (step 4 below). Before it: whether to rehearse on TestPyPI first, and whether
+  the `pypi` environment gets a required reviewer.
+- Whether a model-scored run with no usable model CLI should exit 2 instead of 0 (Known Issues).
 
 ## Known Issues
 
@@ -48,6 +67,17 @@ Nothing.
 - Ship-gate runs differ by one false alarm and two misses between single runs (`docs/results.md`).
 - `scripts/eval.sh` calls `python3` directly, not `uv run`; it needs Python 3.10+ on PATH.
 - The gate's "under 1 s" is a habit, not a check: nothing times it.
+- A run with a model score whose CLI is not installed exits 0 with every string unscored (it says
+  so on stderr and in `meta.unscored`). A build that only reads the exit code sees a pass. Seen
+  2026-11-22 with `claude` absent from PATH; whether that should exit 2 is not decided.
+- `release.yml` has never run: it cannot before it is pushed. It was checked with actionlint and
+  by `tests/test_release.py`, and its build and check steps are the ones `scripts/e2e.sh dist`
+  runs locally. The upload step and the PyPI side of trusted publishing are untested.
+- The wheel's metadata says `Metadata-Version: 2.5` (hatchling 1.33.0). `twine check --strict`
+  accepts it; that PyPI accepts it on upload is not verified. The TestPyPI rehearsal in
+  `docs/release.md` would show it.
+- The new CI entries (Python 3.11 and 3.14 on Linux) and the pinned actions have run locally or
+  been linted only; the first push shows whether CI agrees.
 
 ## Next Steps
 
@@ -67,5 +97,7 @@ Each step says who can do it. A session working alone starts with step 1.
    `python3 services/judge/server.py --cases runs/audit.omniroute.ja.cases.jsonl --findings
    runs/audit.omniroute.ja.findings.jsonl --out runs/audit.omniroute.ja.judgments.jsonl`, then open
    `http://127.0.0.1:8765`. Who judges and how many strings is the owner's decision.
-4. **Needs the owner.** Publish to PyPI, then move the install-from-GitHub command in `README.md`
-   below the PyPI ones.
+4. **Needs the owner.** Publish to PyPI: every step is in `docs/release.md` (trusted publisher on
+   PyPI, `pypi` environment on GitHub, tag `v0.1.0`, GitHub release, verify with `uvx`). After
+   it, "Each release" step 5 there lists the edits that make the PyPI commands the first ones in
+   `README.md`; an agent can do those once the owner says the release is out.
