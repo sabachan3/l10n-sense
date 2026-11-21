@@ -23,7 +23,7 @@ FAIL   health.running  [90]
        fix: 実行中
 ```
 
-Measurements and their limits: [docs/results.md](docs/results.md).
+Measurements and their limits: [docs/results.md](https://github.com/sabachan3/l10n-sense/blob/main/docs/results.md).
 
 ## Install
 
@@ -33,13 +33,27 @@ Python 3.10 or newer, no other dependencies. Not on PyPI yet, so install from th
 uvx --from git+https://github.com/sabachan3/l10n-sense l10n-sense --help   # needs uv
 ```
 
-Once it is published these will work; today they do not:
+After the first release on PyPI these will work; today they do not:
 
 ```bash
 uvx l10n-sense --help            # run without installing
 pipx install l10n-sense          # or install the command
+pip install l10n-sense           # or into the current environment
 pip install "l10n-sense[yaml]"   # YAML locale files need PyYAML
 ```
+
+### What needs a model CLI and what does not
+
+| | needs |
+|---|---|
+| The rules (`--no-model`): placeholders, empty, missing, key used as translation, untranslated | nothing beyond Python. No account, no network, same result every time |
+| The 0-100 score for wrong-sense translations (the default run, without `--no-model`) | the [Claude Code](https://claude.com/claude-code) CLI, installed and logged in |
+| `--scorer codex` or `--second codex` | the [Codex](https://github.com/openai/codex) CLI, installed and logged in |
+
+l10n-sense installs neither CLI and holds no API key. When the model CLI is not installed, or a
+call fails, the rules still run and the strings that got no score are reported as unscored: a
+null score, a count in `meta.unscored`, and a line in the text report. Unscored strings do not
+change the exit code, so a build that relies on the score should read that count.
 
 ## Use
 
@@ -63,7 +77,7 @@ l10n-sense check ... --second codex
 
 `--warn`, `--fail` and `--fail-on` change the thresholds and what breaks a build. `--format json`
 or `--out report.json` gives the full report. Exit code 2 means the command could not do its job: a file could not be read, parsed or written, or the options were wrong (`--out` or `--cache` naming one of the locale files is refused).
-A workflow to copy: [docs/github-actions.yml](docs/github-actions.yml).
+A workflow to copy: [docs/github-actions.yml](https://github.com/sabachan3/l10n-sense/blob/main/docs/github-actions.yml).
 
 ### Locale file formats
 
@@ -100,17 +114,17 @@ language that does not use it.
 
 | path | what it is |
 |---|---|
-| [l10n_sense/](l10n_sense/) | the command: wires the services together |
-| [services/formats/](services/formats/) | reads JSON, YAML, gettext, Android, iOS and Xcode locale files into one shape |
-| [contracts/](contracts/) | JSON Lines formats exchanged between services, with a validator |
-| [services/rules/](services/rules/) | checks that need no model |
-| [services/extract/](services/extract/) | finds where each key is used in the code |
-| [services/score/](services/score/) | 0-100 scoring prompt, parsing, agreement between two scorers |
-| [services/check/](services/check/) | verdict per string, report, exit code |
-| [services/llm/](services/llm/), [services/llm_codex/](services/llm_codex/) | text completion through the local Claude Code and Codex CLIs, locked down to text in, text out |
-| [services/bench/](services/bench/), [data/bench/](data/bench/) | benchmarks with known truth |
-| [services/review/](services/review/), [services/judge/](services/judge/) | the earlier flag-only reviewer and a local page for judging findings by hand |
-| [tests/](tests/), [scripts/](scripts/) | command-level tests and end-to-end fixtures; setup, gate, end-to-end and eval scripts |
+| [l10n_sense/](https://github.com/sabachan3/l10n-sense/tree/main/l10n_sense) | the command: wires the services together |
+| [services/formats/](https://github.com/sabachan3/l10n-sense/tree/main/services/formats) | reads JSON, YAML, gettext, Android, iOS and Xcode locale files into one shape |
+| [contracts/](https://github.com/sabachan3/l10n-sense/tree/main/contracts) | JSON Lines formats exchanged between services, with a validator |
+| [services/rules/](https://github.com/sabachan3/l10n-sense/tree/main/services/rules) | checks that need no model |
+| [services/extract/](https://github.com/sabachan3/l10n-sense/tree/main/services/extract) | finds where each key is used in the code |
+| [services/score/](https://github.com/sabachan3/l10n-sense/tree/main/services/score) | 0-100 scoring prompt, parsing, agreement between two scorers |
+| [services/check/](https://github.com/sabachan3/l10n-sense/tree/main/services/check) | verdict per string, report, exit code |
+| [services/llm/](https://github.com/sabachan3/l10n-sense/tree/main/services/llm), [services/llm_codex/](https://github.com/sabachan3/l10n-sense/tree/main/services/llm_codex) | text completion through the local Claude Code and Codex CLIs, locked down to text in, text out |
+| [services/bench/](https://github.com/sabachan3/l10n-sense/tree/main/services/bench), [data/bench/](https://github.com/sabachan3/l10n-sense/tree/main/data/bench) | benchmarks with known truth |
+| [services/review/](https://github.com/sabachan3/l10n-sense/tree/main/services/review), [services/judge/](https://github.com/sabachan3/l10n-sense/tree/main/services/judge) | the earlier flag-only reviewer and a local page for judging findings by hand |
+| [tests/](https://github.com/sabachan3/l10n-sense/tree/main/tests), [scripts/](https://github.com/sabachan3/l10n-sense/tree/main/scripts) | command-level tests and end-to-end fixtures; setup, gate, end-to-end and eval scripts |
 
 ## Develop
 
@@ -124,7 +138,7 @@ scripts/eval.sh codex                 # plus the Codex isolation check and the C
 
 Ship gate for a scorer: precision at least 0.9 at recall at least 0.7 on `data/bench/injected.ja.jsonl`.
 
-Coding agents: start at [CLAUDE.md](CLAUDE.md). Current state is in [PROGRESS.md](PROGRESS.md), past decisions in [DECISIONS.md](DECISIONS.md).
+Coding agents: start at [CLAUDE.md](https://github.com/sabachan3/l10n-sense/blob/main/CLAUDE.md). Current state is in [PROGRESS.md](https://github.com/sabachan3/l10n-sense/blob/main/PROGRESS.md), past decisions in [DECISIONS.md](https://github.com/sabachan3/l10n-sense/blob/main/DECISIONS.md).
 
 ## Safety
 
