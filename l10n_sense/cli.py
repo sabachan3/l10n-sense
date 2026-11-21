@@ -24,6 +24,11 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 PACKAGE = Path(__file__).resolve().parent
+try:
+    from l10n_sense import __version__
+except ImportError:  # started as a script (python l10n_sense/cli.py): the package's parent is not on the path
+    sys.path.insert(0, str(PACKAGE.parent))
+    from l10n_sense import __version__
 # installed: services are shipped inside the package. In the repository: the services/ directory.
 SERVICES_DIR = PACKAGE / "_services" if (PACKAGE / "_services").is_dir() else PACKAGE.parent / "services"
 for service in ("extract", "rules", "score", "check", "formats"):
@@ -215,6 +220,7 @@ def check(args, call=call_service, log=print) -> tuple[dict, int]:
 
 def main(argv: list[str] | None = None, call=call_service) -> int:
     parser = Parser(prog="l10n-sense", description=__doc__.split("\n")[0])
+    parser.add_argument("--version", action="version", version=f"l10n-sense {__version__}")
     commands = parser.add_subparsers(dest="command", required=True)
     run = commands.add_parser("check", help="audit one locale file against its source locale")
     run.add_argument("--source", type=Path, help="source locale file; not needed for .po and .xcstrings, which hold both")

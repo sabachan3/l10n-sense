@@ -39,9 +39,15 @@
     },
     {
       "id": "installed-wheel",
-      "behavior": "The built wheel installs into a clean environment and the installed command finds the known problems in tests/e2e, passes the clean file, and exits 2 on an unreadable file.",
+      "behavior": "The sdist and the wheel pass twine check and hold exactly the files pyproject.toml names; each installs into a clean environment, and each installed command prints its version, finds the known problems in tests/e2e, passes the clean file, and exits 2 on an unreadable file.",
       "verify": "scripts/e2e.sh",
       "state": "passing"
+    },
+    {
+      "id": "release-files",
+      "behavior": "One version in pyproject.toml, the package, --version and the changelog; README links are absolute; every workflow action is pinned to a commit; the release workflow cannot be started by a push and uploads only after the gate and the package check, with no stored credential.",
+      "verify": "uv run --quiet --with-requirements requirements-gate.txt pytest -q tests/test_release.py",
+      "state": "active"
     },
     {
       "id": "scorer-ship-gate",

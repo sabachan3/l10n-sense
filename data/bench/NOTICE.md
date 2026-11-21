@@ -8,4 +8,8 @@ from that pull request.
 
 `docs/audit-omniroute-ja-sample.md` quotes strings from the same repository under the same licence.
 
-`injected.ja.jsonl` is written for this project.
+`injected.ja.jsonl` is written for this project, and so are the files it is built from
+(`services/bench/ja_translations.json`, `services/bench/fixtures.py`) and the end-to-end fixtures
+in `tests/e2e/`. They are under the project's own licence ([LICENSE](../../LICENSE)).
+
+None of the files named here is part of the sdist or the wheel.
