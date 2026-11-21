@@ -41,7 +41,9 @@ def test_pyproject_package_and_changelog_carry_the_same_version():
 def test_readme_has_no_relative_link_or_image():
     # PyPI renders README.md as the project page; a relative target is a dead link there.
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    targets = re.findall(r"\]\(([^)\s]+)", readme) + re.findall(r"""(?:src|href)=["']([^"']+)""", readme)
+    targets = (re.findall(r"\]\(([^)\s]+)", readme)                      # [text](target), ![alt](target)
+               + re.findall(r"^\s*\[[^\]]+\]:\s*(\S+)", readme, re.M)     # [name]: target
+               + re.findall(r"""(?:src|href)\s*=\s*["']?([^"'\s>]+)""", readme))
     assert len(targets) >= 20
     assert [target for target in targets if not target.startswith(("https://", "#"))] == []
 
@@ -54,6 +56,11 @@ def test_readme_offers_the_repository_install_and_marks_pypi_commands_as_not_yet
     marker = readme.index("After the first release on PyPI these will work; today they do not:")
     assert from_repository < marker < readme.index("pip install l10n-sense")
     assert marker < readme.index("uvx l10n-sense --help") and marker < readme.index("pipx install l10n-sense")
+
+
+def test_no_runtime_dependency_is_declared():
+    # CLAUDE.md, hard constraint 11. scripts/e2e.sh checks the same in the built metadata.
+    assert re.findall(r"^dependencies = (.*)$", PYPROJECT, re.M) == ["[]"]
 
 
 def test_sdist_lists_every_file_the_wheel_is_built_from():
@@ -109,7 +116,23 @@ def test_release_workflow_publishes_only_after_the_gate_and_the_package_check():
     assert "scripts/test.sh" in commands["gate"]
     build = commands["build"]
     assert build.index("uv build --out-dir dist") < build.index("scripts/e2e.sh dist")
-    assert "upload-artifact" in jobs["build"]["steps"][-1]["uses"]  # nothing is stored before the check passed
+    store = jobs["build"]["steps"][-1]  # last, so nothing is stored before the check passed
+    assert "upload-artifact" in store["uses"]
+    # Only the two archives: the upload step sends every file it is handed.
+    assert store["with"]["path"].split() == ["dist/*.whl", "dist/*.tar.gz"] and store["with"]["if-no-files-found"] == "error"
+    for name in publishing:
+        assert jobs[name]["steps"][0]["with"] == {"name": store["with"]["name"], "path": "dist"}, name
+
+
+def test_an_upload_to_pypi_is_built_from_the_version_tag():
+    document, _ = read_workflow(ROOT / ".github/workflows/release.yml")
+    steps = document["jobs"]["build"]["steps"]
+    check = next(step for step in steps if 'refs/tags/v$version' in step.get("run", ""))
+    assert check["if"] == "github.event_name == 'release' || inputs.target == 'pypi'"  # every case the publish job runs in
+    assert check["if"] == document["jobs"]["publish"]["if"]
+    assert check["env"] == {"REF": "${{ github.ref }}"}
+    assert '[ "$REF" = "refs/tags/v$version" ] || {' in check["run"] and "exit 1" in check["run"]
+    assert steps.index(check) < next(index for index, step in enumerate(steps) if step.get("run") == "uv build --out-dir dist")
 
 
 def test_release_gate_runs_the_same_matrix_as_ci():

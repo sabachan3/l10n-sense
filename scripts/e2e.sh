@@ -10,16 +10,20 @@
 #
 # Takes a few seconds and needs the network for the build backend and twine. Not part of the gate.
 set -euo pipefail
-cd "$(git rev-parse --show-toplevel)"
-repo="$PWD"
+given=""
+if [ "$#" -ge 1 ]; then
+  [ -d "$1" ] || { echo "e2e FAIL: $1 is not a directory" >&2; exit 1; }
+  given="$(cd "$1" && pwd)"   # resolved from where the script was called
+fi
+repo="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
+cd "$repo"
 work="$(mktemp -d)"
 trap 'rm -r "$work"' EXIT
 
 fail() { echo "e2e FAIL: $1" >&2; exit 1; }
 
-if [ "$#" -ge 1 ]; then
-  [ -d "$1" ] || fail "$1 is not a directory"
-  dist="$(cd "$1" && pwd)"
+if [ -n "$given" ]; then
+  dist="$given"
 else
   dist="$work/dist"
   uv build --quiet --out-dir "$dist"   # the wheel is built from the sdist, so the sdist is proven complete

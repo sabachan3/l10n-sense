@@ -7,7 +7,7 @@ Updated at the end of every working session. Newest state on top.
 - Version 0.1.0, public on GitHub, not on PyPI. Installs from the repository URL.
 - Ready for a first PyPI release; the release itself is the owner's (`docs/release.md`). The name
   `l10n-sense` was free on PyPI on 2026-11-22 (HTTP 404 from `pypi.org/pypi/l10n-sense/json`).
-- Gate: `scripts/test.sh` green, 140 tests, also in CI on Linux, macOS and Windows. End to end:
+- Gate: `scripts/test.sh` green, 142 tests, also in CI on Linux, macOS and Windows. End to end:
   `scripts/e2e.sh` green (sdist and wheel: twine check, exact contents, installed from each, rules only).
 - All nine items in `features.json` have a recorded passing run on the author's machine (the
   record is local, under `.git/agent-sense/`; a fresh clone starts without one).
@@ -42,6 +42,11 @@ History is in `git log` and, for measurements, in `docs/results.md`. In short:
   and data); `tests/test_release.py`. Gate run locally on Python 3.10, 3.11, 3.12, 3.13 and 3.14.
   Audit of the tree and of the history of `main` for secrets, addresses, paths, machine and
   project names: nothing found in what is public (details went to the owner, not into this file).
+  Independent review of 205a482..ced7cf1: PASS, no class A finding; gate, end-to-end check and 13
+  mutations rerun by the reviewer in a clone, workflows read but not run. Fixed from its notes: an
+  upload to PyPI started by hand must now also run on the tag `v<version>`; tests for that, for
+  the files handed to the upload step, for reference-style links and for a declared runtime
+  dependency; `scripts/e2e.sh` works from any directory. Those fixes are not reviewed.
 
 ## In Progress
 

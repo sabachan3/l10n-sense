@@ -4,10 +4,10 @@ Steps for the owner. Nothing here is run by an agent (CLAUDE.md, "Ask the owner 
 The upload itself is done by `.github/workflows/release.yml` with PyPI trusted publishing: no
 token or password exists, on GitHub or on any machine.
 
-What the workflow does, in order: the gate on the same systems and Python versions as CI; a
-build of the sdist and the wheel; `scripts/e2e.sh dist` on exactly those two files (twine check,
-contents compared with `pyproject.toml` file by file, install from each, run the installed
-command); then the upload. A failure anywhere before the upload uploads nothing.
+What the workflow does: the gate on the same systems and Python versions as CI and, beside it,
+a build of the sdist and the wheel followed by `scripts/e2e.sh dist` on exactly those two files
+(twine check, contents compared with `pyproject.toml` file by file, install from each, run the
+installed command). The upload starts only after both have passed; a failure in either uploads nothing.
 
 It starts when a GitHub release is published, or by hand. A push never starts it. Started by
 hand it uploads nowhere unless told to (`-f target=testpypi` or `-f target=pypi`).
@@ -64,8 +64,9 @@ gh workflow run release.yml && gh run watch
 2. The version is the same in `pyproject.toml`, `l10n_sense/__init__.py` and the newest entry of
    `CHANGELOG.md` (the gate fails otherwise). For a release after 0.1.0: change all three, run
    `uv lock`, commit, push.
-3. Tag and publish the GitHub release. The tag must be `v` plus the version; the workflow stops
-   before the upload when it is not.
+3. Tag and publish the GitHub release. The tag must be `v` plus the version. The workflow stops
+   before the upload when it runs on anything else, also when started by hand with `-f target=pypi`
+   (the TestPyPI rehearsal and a run that uploads nowhere are not held to a tag).
 
    ```bash
    version="$(sed -n 's/^version = "\(.*\)"$/\1/p' pyproject.toml)"

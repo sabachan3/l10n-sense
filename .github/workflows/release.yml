@@ -62,13 +62,14 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
-      - name: the release tag is v plus the version in pyproject.toml
-        if: github.event_name == 'release'
+      - name: an upload to PyPI is built from the tag v plus the version in pyproject.toml
+        # A published release runs on its tag. Started by hand for PyPI, it must be given that tag (--ref).
+        if: github.event_name == 'release' || inputs.target == 'pypi'
         env:
-          TAG: ${{ github.event.release.tag_name }}
+          REF: ${{ github.ref }}
         run: |
           version="$(sed -n 's/^version = "\(.*\)"$/\1/p' pyproject.toml)"
-          [ "$TAG" = "v$version" ] || { echo "::error::release tag $TAG, but pyproject.toml says $version (expected tag v$version)"; exit 1; }
+          [ "$REF" = "refs/tags/v$version" ] || { echo "::error::running on $REF, but pyproject.toml says $version (expected refs/tags/v$version)"; exit 1; }
       - name: build
         run: uv build --out-dir dist
       - name: twine check, contents, install from each, run the installed command
