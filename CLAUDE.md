@@ -40,7 +40,7 @@ scripts/eval.sh        # COSTS MODEL CALLS (45 cases, a few minutes). Only for p
 scripts/eval.sh codex  # plus the Codex isolation check and the Codex scorer; also model calls
 ```
 
-`agent-sense` is the author's own unpublished tool and is optional: when the command is absent,
+`agent-sense` (https://github.com/sabachan3/agent-sense) is the author's own tool for checking agent work and is optional: when the command is absent,
 skip every step that names it. `agent-sense features --run` runs every verify command except those marked `"manual": true`;
 `scorer-ship-gate` is marked so because it makes model calls (`--only scorer-ship-gate` runs it). The record of runs is local, under `.git/agent-sense/`.
 
