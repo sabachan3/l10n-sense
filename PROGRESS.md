@@ -75,9 +75,10 @@ Nothing.
 - A run with a model score whose CLI is not installed exits 0 with every string unscored (it says
   so on stderr and in `meta.unscored`). A build that only reads the exit code sees a pass. Seen
   2026-11-22 with `claude` absent from PATH; whether that should exit 2 is not decided.
-- `release.yml` has never run: it cannot before it is pushed. It was checked with actionlint and
-  by `tests/test_release.py`, and its build and check steps are the ones `scripts/e2e.sh dist`
-  runs locally. The upload step and the PyPI side of trusted publishing are untested.
+- `release.yml` ran once, by hand with `target=nowhere`, on 2026-11-22 at `2c59f3d` (run
+  45019337587): the eight gate jobs and the build and check of both files passed, both upload
+  jobs were skipped. The upload steps, the two environments and the PyPI side of trusted
+  publishing are still untested; the first rehearsal on TestPyPI or the first release shows them.
 - The wheel's metadata says `Metadata-Version: 2.5` (hatchling 1.33.0). `twine check --strict`
   accepts it; that PyPI accepts it on upload is not verified. The TestPyPI rehearsal in
   `docs/release.md` would show it.
